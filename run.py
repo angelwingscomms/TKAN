@@ -1,3 +1,7 @@
+"""
+TKAN Training Script
+Trains a Temporal Kernel Attention Network for binary classification (buy/sell signals).
+"""
 import os
 os.environ['JAX_PLATFORMS'] = 'cpu'
 
@@ -11,64 +15,132 @@ from tkan.data import load_data
 from tkan.labels import create_binary_labels, split_train_test, normalize_features, save_norm_params
 from tkan.tkan_model import init_tkan, tkan_apply, binary_crossentropy, compute_accuracy, make_apply_fn
 
-cfg, df = load_data()
-seq_len = cfg['sequence_length']
-n_ahead = cfg['n_ahead']
-threshold = cfg['threshold_pct']
-stop_loss = cfg['stop_loss_pct']
-hidden = cfg['hidden_size']
-sub = cfg['sub_dim']
-bs = cfg['batch_size']
-lr = cfg['learning_rate']
-epochs = cfg['epochs']
-split = cfg['train_test_split']
-seed = cfg['seed']
+# ============================================================================
+# CONFIGURATION: Load settings from config file
+# ============================================================================
+config, df = load_data()
 
-print(f"Data: {df.shape}, TF={cfg['timeframe_minutes']}m, TP={threshold}%, SL={stop_loss}%, n_ahead={n_ahead}")
-X, y = create_binary_labels(df, cfg)
-print(f"Labels: 1={int(np.sum(y))}, 0={int(len(y)-np.sum(y))}, pos_rate={np.mean(y)*100:.1f}%")
+# Extract hyperparameters for convenience
+sequence_length = config['sequence_length']  # How many time steps to look back
+n_ahead = config['n_ahead']                    # How far into the future to predict
+threshold_pct = config['threshold_pct']       # Min price change % to trigger BUY signal
+stop_loss_pct = config['stop_loss_pct']       # Stop loss % for label generation
+hidden_size = config['hidden_size']           # Number of hidden units in TKAN
+sub_dim = config['sub_dim']                    # Subdimension for low-rank approximation
+batch_size = config['batch_size']             # Mini-batch size for training
+learning_rate = config['learning_rate']        # Adam optimizer learning rate
+epochs = config['epochs']                       # Number of training epochs
+train_test_split = config['train_test_split'] # Fraction of data for training (e.g., 0.8 = 80%)
+seed = config['seed']                          # Random seed for reproducibility
 
-X_tr, X_te, y_tr, y_te = split_train_test(X, y, split)
-X_tr, X_te, xmin, xmax = normalize_features(X_tr, X_te)
-save_norm_params(xmin, xmax, cfg['norm_output'])
-y_tr, y_te = y_tr.reshape(-1, 1), y_te.reshape(-1, 1)
-X_tr, y_tr, X_te, y_te = map(jnp.array, [X_tr, y_tr, X_te, y_te])
+# ============================================================================
+# DATA PREPARATION: Load data and create labels
+# ============================================================================
+print(f"Data shape: {df.shape}, Timeframe: {config['timeframe_minutes']}m, Threshold: {threshold_pct}%, Stop Loss: {stop_loss_pct}%, Predict {n_ahead} bars ahead")
 
-input_dim = X_tr.shape[-1]
-print(f"Train: {X_tr.shape}, Test: {X_te.shape}, input_dim={input_dim}")
+# Create binary labels: 1 = BUY signal (price goes up enough), 0 = HOLD/SELL
+X, y = create_binary_labels(df, config)
+print(f"Labels created: Buy signals={int(np.sum(y))}, Hold/Sell={int(len(y)-np.sum(y))}, Positive rate={np.mean(y)*100:.1f}%")
 
+# ============================================================================
+# TRAIN/TEST SPLIT: Separate data into training and test sets
+# ============================================================================
+X_train, X_test, y_train, y_test = split_train_test(X, y, train_test_split)
+
+# Normalize features using training set statistics (prevent data leakage)
+X_train, X_test, xmin, xmax = normalize_features(X_train, X_test)
+save_norm_params(xmin, xmax, config['norm_output'])
+
+# Reshape labels to column vectors (required by model)
+y_train = y_train.reshape(-1, 1)
+y_test = y_test.reshape(-1, 1)
+
+# Convert to JAX arrays for GPU/memory-efficient computation
+X_train = jnp.array(X_train)
+y_train = jnp.array(y_train)
+X_test = jnp.array(X_test)
+y_test = jnp.array(y_test)
+
+# ============================================================================
+# MODEL INITIALIZATION: Create TKAN model parameters
+# ============================================================================
+input_dim = X_train.shape[-1]  # Number of features per time step
+print(f"Train set: {X_train.shape}, Test set: {X_test.shape}, Input dimension: {input_dim}")
+
+# Initialize random key for reproducibility
 key = jax.random.key(seed)
 key, k = jax.random.split(key)
-params = init_tkan(input_dim, hidden, sub, k)
-print(f"Params: {sum(p.size for p in jax.tree_util.tree_leaves(params))}")
 
-opt = optax.adam(lr)
-opt_st = opt.init(params)
+# Create TKAN model with initialized parameters
+params = init_tkan(input_dim, hidden_size, sub_dim, k)
+total_params = sum(p.size for p in jax.tree_util.tree_leaves(params))
+print(f"Model parameters: {total_params:,}")
 
-start = time.time()
-for ep in range(epochs):
-    key, sk = jax.random.split(key)
-    idx = jax.random.permutation(sk, len(X_tr))
-    ep_loss, ep_acc, n_b = 0.0, 0.0, 0
-    for i in range(0, len(X_tr), bs):
-        bx, by = X_tr[idx[i:i+bs]], y_tr[idx[i:i+bs]]
-        def loss_fn(p):
-            return binary_crossentropy(tkan_apply(p, bx, use_sigmoid=True), by)
-        l, g = jax.value_and_grad(loss_fn)(params)
-        u, opt_st = opt.update(g, opt_st)
-        params = optax.apply_updates(params, u)
-        ep_loss += l
-        ep_acc += compute_accuracy(tkan_apply(params, bx, use_sigmoid=True), by)
-        n_b += 1
-    print(f"  Epoch {ep+1}: loss={ep_loss/n_b:.4f} acc={ep_acc/n_b:.4f}")
+# ============================================================================
+# TRAINING: Optimize model with Adam optimizer
+# ============================================================================
+optimizer = optax.adam(learning_rate)
+optimizer_state = optimizer.init(params)
 
-preds = tkan_apply(params, X_te, use_sigmoid=True)
-print(f"Time: {time.time()-start:.1f}s, Test Acc: {compute_accuracy(preds, y_te):.4f}")
+start_time = time.time()
 
-print("Exporting ONNX...")
+for epoch in range(epochs):
+    key, subkey = jax.random.split(key)
+    
+    # Shuffle training data each epoch
+    shuffled_indices = jax.random.permutation(subkey, len(X_train))
+    
+    epoch_loss = 0.0
+    epoch_accuracy = 0.0
+    num_batches = 0
+    
+    # Mini-batch training
+    for i in range(0, len(X_train), batch_size):
+        # Get batch data
+        batch_X = X_train[shuffled_indices[i:i+batch_size]]
+        batch_y = y_train[shuffled_indices[i:i+batch_size]]
+        
+        # Compute loss and gradients
+        def loss_fn(params):
+            predictions = tkan_apply(params, batch_X, use_sigmoid=True)
+            return binary_crossentropy(predictions, batch_y)
+        
+        loss, gradients = jax.value_and_grad(loss_fn)(params)
+        
+        # Update parameters using Adam optimizer
+        updates, optimizer_state = optimizer.update(gradients, optimizer_state)
+        params = optax.apply_updates(params, updates)
+        
+        # Accumulate metrics
+        epoch_loss += loss
+        epoch_accuracy += compute_accuracy(tkan_apply(params, batch_X, use_sigmoid=True), batch_y)
+        num_batches += 1
+    
+    # Report epoch progress
+    avg_loss = epoch_loss / num_batches
+    avg_accuracy = epoch_accuracy / num_batches
+    print(f"  Epoch {epoch+1}: loss={avg_loss:.4f}, accuracy={avg_accuracy:.4f}")
+
+# ============================================================================
+# EVALUATION: Test model on held-out test set
+# ============================================================================
+test_predictions = tkan_apply(params, X_test, use_sigmoid=True)
+test_accuracy = compute_accuracy(test_predictions, y_test)
+elapsed_time = time.time() - start_time
+
+print(f"Training completed in {elapsed_time:.1f}s, Test accuracy: {test_accuracy:.4f}")
+
+# ============================================================================
+# EXPORT: Save model to ONNX format for deployment
+# ============================================================================
+print("Exporting model to ONNX...")
+
 result = to_onnx(
     make_apply_fn(params, use_sigmoid=True),
-    inputs=[jax.ShapeDtypeStruct((1, seq_len, input_dim), jnp.float32)],
-    model_name='TKAN', return_mode='file', output_path=cfg['model_output']
+    inputs=[jax.ShapeDtypeStruct((1, sequence_length, input_dim), jnp.float32)],
+    model_name='TKAN',
+    return_mode='file',
+    output_path=config['model_output']
 )
-print(f"Saved {cfg['model_output']}: {result}")
+
+print(f"Model saved to: {config['model_output']}")
