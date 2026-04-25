@@ -1,6 +1,8 @@
 import os
 os.environ['JAX_CPU_COLLECTIVE_IMPL_HEADER_ONLY'] = '1'
 
+from pathlib import Path
+
 import jax
 import jax.numpy as jnp
 from tkan import (
@@ -141,6 +143,10 @@ def main():
     print("\nExporting model to ONNX...")
     to_onnx_model(params)
     print(f"Model saved to: model.onnx")
+    model_path = Path('model.onnx')
+    expert_path = Path('live.ex5')
+    if not expert_path.exists() or expert_path.stat().st_mtime < model_path.stat().st_mtime:
+        print("live.ex5 is older than model.onnx. Recompile live.mq5 in MetaEditor before running the tester.")
 
 
 if __name__ == '__main__':
