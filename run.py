@@ -86,34 +86,7 @@ def tkan_apply(params, x, hidden=100):
     return jnp.dot(tkan_fwd(params, x, hidden), params['dense_w']) + params['dense_b']
 
 
-def init_gru(input_dim, hidden, key):
-    k = jax.random.split(key, 3)
-    sc = jnp.sqrt(2.0 / (input_dim + hidden))
-    return {
-        'Wr': jax.random.normal(k[0], (input_dim, hidden)) * sc,
-        'Uz': jax.random.normal(k[1], (hidden, hidden)) * sc,
-        'b': jnp.zeros((hidden,)),
-        'dense_w': jax.random.normal(k[2], (hidden, 1)) * jnp.sqrt(2.0 / (hidden + 1)),
-        'dense_b': jnp.zeros((1,)),
-    }
 
-
-def gru_cell(params, h, x):
-    z = jax.nn.sigmoid(jnp.dot(x, params['Wr']) + jnp.dot(h, params['Uz']) + params['b'])
-    h_cand = jnp.tanh(jnp.dot(x, params['Wr']) + jnp.dot(z * h, params['Uz']) + params['b'])
-    return (1 - z) * h + z * h_cand
-
-
-def gru_fwd(params, x):
-    bs, seq, _ = x.shape
-    h = jnp.zeros((bs, params['Wr'].shape[1]))
-    for t in range(seq):
-        h = gru_cell(params, h, x[:, t, :])
-    return h
-
-
-def gru_apply(params, x):
-    return jnp.dot(gru_fwd(params, x), params['dense_w']) + params['dense_b']
 
 
 def main():
@@ -177,42 +150,10 @@ def main():
     rmse = jnp.sqrt(jnp.mean((y_te - preds) ** 2))
     print(f"Time: {tkan_time:.1f}s, RMSE: {rmse:.4f}")
     
-    print("\n=== GRU ===")
-    key, k = jax.random.split(key)
-    gru_p = init_gru(input_dim, hidden, k)
-    print(f"Params: {sum(p.size for p in jax.tree_util.tree_leaves(gru_p))}")
-    
-    opt_st = opt.init(gru_p)
-    
-    start = time.time()
-    for ep in range(10):
-        idx = jax.random.permutation(jax.random.key(ep), len(X_tr))
-        ep_loss = 0
-        for i in range(0, len(X_tr), 128):
-            b_idx = idx[i:i+128]
-            bx, by = X_tr[b_idx], y_tr[b_idx]
-            
-            def loss_fn(p):
-                return jnp.mean((gru_apply(p, bx) - by) ** 2)
-            
-            l, g = jax.value_and_grad(loss_fn)(gru_p)
-            u, opt_st = opt.update(g, opt_st)
-            gru_p = optax.apply_updates(gru_p, u)
-            ep_loss += l
-        
-        if (ep+1) % 2 == 0:
-            print(f"  Epoch {ep+1}: loss = {ep_loss:.4f}")
-    
-    gru_time = time.time() - start
-    preds = gru_apply(gru_p, X_te)
-    rmse = jnp.sqrt(jnp.mean((y_te - preds) ** 2))
-    print(f"Time: {gru_time:.1f}s, RMSE: {rmse:.4f}")
-    
     print("\n" + "="*40)
     print("SUMMARY")
     print("="*40)
     print(f"TKAN: {tkan_time:.1f}s")
-    print(f"GRU:  {gru_time:.1f}s")
     print("="*40)
 
 
