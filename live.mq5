@@ -2,29 +2,29 @@
 #property version "1.00"
 #property strict
 
-#include "norm_params.mqh"
-#include "config.mqh"
+#include <config.mqh>
+#include <norm_params.mqh>
 
 input double LotSize = 0.01;
 
 datetime lastBar = 0;
-long OnnxHandle = INVALID_HANDLE;
+long gOnnxHandle = INVALID_HANDLE;
 
 string gSymbol;
-
-#include "model.onnx" as uchar ExtModel[]
 
 int OnInit() {
    gSymbol = CFG_SYMBOL;
    if(StringLen(gSymbol) == 0) gSymbol = "BTCUSD";
    
-   OnnxHandle = OnnxCreateFromBuffer(ExtModel, ONNX_DEFAULT);
-   if(OnnxHandle == INVALID_HANDLE) { Print("ONNX create failed: ", GetLastError()); return INIT_FAILED; }
+   uchar ExtModel[];
+   if(FileLoad("model.onnx", ExtModel) <= 0) { Print("Failed to load model"); return INIT_FAILED; }
+   gOnnxHandle = OnnxCreateFromBuffer(ExtModel, ONNX_DEFAULT);
+   if(gOnnxHandle == INVALID_HANDLE) { Print("ONNX create failed: ", GetLastError()); return INIT_FAILED; }
    return INIT_SUCCEEDED;
 }
 
 void OnDeinit(const int reason) {
-   if(OnnxHandle != INVALID_HANDLE) OnnxRelease(OnnxHandle);
+   if(gOnnxHandle != INVALID_HANDLE) OnnxRelease(gOnnxHandle);
 }
 
 void OnTick() {
@@ -55,7 +55,7 @@ void RunModel() {
    vectorf y(1);
    matrixf x3d = x;
    x3d.Resize(1, 180);
-   if(!OnnxRun(OnnxHandle, 0, x3d, y)) { Print("ONNX run failed: ", GetLastError()); return; }
+   if(!OnnxRun(gOnnxHandle, 0, x3d, y)) { Print("ONNX run failed: ", GetLastError()); return; }
    Trade((double)y[0]);
 }
 
@@ -63,7 +63,7 @@ double GetSL(bool isBuy) {
    double entry = isBuy ? SymbolInfoDouble(gSymbol, SYMBOL_ASK) : SymbolInfoDouble(gSymbol, SYMBOL_BID);
    
    if(CFG_TARGET_TYPE == "atr") {
-      double atr = iATR(gSymbol, PERIOD_CURRENT, CFG_ATR_PERIOD, 0);
+      double atr = iATR(gSymbol, PERIOD_CURRENT, CFG_ATR_PERIOD);
       double slDist = atr * CFG_ATR_MULTIPLIER;
       return isBuy ? entry - slDist : entry + slDist;
    } else {
@@ -77,7 +77,7 @@ double GetTP(bool isBuy) {
    double entry = isBuy ? SymbolInfoDouble(gSymbol, SYMBOL_ASK) : SymbolInfoDouble(gSymbol, SYMBOL_BID);
    
    if(CFG_TARGET_TYPE == "atr") {
-      double atr = iATR(gSymbol, PERIOD_CURRENT, CFG_ATR_PERIOD, 0);
+      double atr = iATR(gSymbol, PERIOD_CURRENT, CFG_ATR_PERIOD);
       double slDist = atr * CFG_ATR_MULTIPLIER;
       double tpDist = slDist * CFG_TP_MULTIPLIER;
       return isBuy ? entry + tpDist : entry - tpDist;
