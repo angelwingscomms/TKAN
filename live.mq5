@@ -11,6 +11,7 @@ input double LotSize = 0.01;
 
 datetime lastBar = 0;
 long gOnnxHandle = INVALID_HANDLE;
+int gAtrHandle = INVALID_HANDLE;
 
 string gSymbol;
 
@@ -18,13 +19,20 @@ int OnInit() {
    gSymbol = CFG_SYMBOL;
    if(StringLen(gSymbol) == 0) gSymbol = _Symbol;
    
-   gOnnxHandle = OnnxCreateFromBuffer(ExtModel, ONNX_DEFAULT);
+gOnnxHandle = OnnxCreateFromBuffer(ExtModel, ONNX_DEFAULT);
    if(gOnnxHandle == INVALID_HANDLE) { Print("ONNX create failed: ", GetLastError()); return INIT_FAILED; }
+   
+   if(CFG_TARGET_TYPE == "atr") {
+      gAtrHandle = iATR(gSymbol, PERIOD_CURRENT, CFG_ATR_PERIOD);
+      if(gAtrHandle == INVALID_HANDLE) { Print("ATR handle failed: ", GetLastError()); return INIT_FAILED; }
+   }
+   
    return INIT_SUCCEEDED;
 }
 
 void OnDeinit(const int reason) {
    if(gOnnxHandle != INVALID_HANDLE) OnnxRelease(gOnnxHandle);
+   if(gAtrHandle != INVALID_HANDLE) IndicatorRelease(gAtrHandle);
 }
 
 void OnTick() {
@@ -74,8 +82,9 @@ double GetSL(bool isBuy) {
    double entry = isBuy ? SymbolInfoDouble(gSymbol, SYMBOL_ASK) : SymbolInfoDouble(gSymbol, SYMBOL_BID);
    
    if(CFG_TARGET_TYPE == "atr") {
-      double atr = iATR(gSymbol, PERIOD_CURRENT, CFG_ATR_PERIOD);
-      double slDist = atr * CFG_ATR_MULTIPLIER;
+      double atrBuf[];
+      CopyBuffer(gAtrHandle, 0, 0, 1, atrBuf);
+      double slDist = atrBuf[0] * CFG_ATR_MULTIPLIER;
       return isBuy ? entry - slDist : entry + slDist;
    } else {
       double tpPct = CFG_THRESHOLD_PCT;
@@ -88,8 +97,9 @@ double GetTP(bool isBuy) {
    double entry = isBuy ? SymbolInfoDouble(gSymbol, SYMBOL_ASK) : SymbolInfoDouble(gSymbol, SYMBOL_BID);
    
    if(CFG_TARGET_TYPE == "atr") {
-      double atr = iATR(gSymbol, PERIOD_CURRENT, CFG_ATR_PERIOD);
-      double slDist = atr * CFG_ATR_MULTIPLIER;
+      double atrBuf[];
+      CopyBuffer(gAtrHandle, 0, 0, 1, atrBuf);
+      double slDist = atrBuf[0] * CFG_ATR_MULTIPLIER;
       double tpDist = slDist * CFG_TP_MULTIPLIER;
       return isBuy ? entry + tpDist : entry - tpDist;
    } else {
