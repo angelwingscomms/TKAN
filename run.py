@@ -145,7 +145,7 @@ def main():
 
     start = time.time()
     train_losses, val_losses = [], []
-    for ep in range(10):
+    for ep in range(27):
         idx = jax.random.permutation(jax.random.key(ep), len(X_tr))
         ep_loss = 0
         for i in range(0, len(X_tr), 128):
