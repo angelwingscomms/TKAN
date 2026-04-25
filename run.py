@@ -101,7 +101,7 @@ def main():
 
     print("\n=== TKAN ===")
     params, train_losses, val_losses, acc, elapsed = train(
-        X_tr, y_tr, X_te, y_te, input_dim, hidden, sub
+        X_tr, y_tr, X_te, y_te, input_dim, hidden, sub, epochs=cfg['epochs'], lr=cfg['learning_rate']
     )
 
     print("\n" + "="*48)
