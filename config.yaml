@@ -15,25 +15,23 @@ n_ahead: 9
 feature_symbols:
   BCHUSD: false
   BTCUSD: true
-  ETHUSD: false
-  LTCUSD: false
-  XRPUSD: false
+  ETHUSD: true
+  LTCUSD: true
+  XRPUSD: true
   ADAUSD: false
   AVAXUSD: false
   AXSUSD: false
-  DOGEUSD: false
+  DOGEUSD: true
   DOTUSD: false
   EOSUSD: false
   FILUSD: false
   LINKUSD: false
   MATICUSD: false
   MIOTAUSD: false
-  SOLUSD: false
-  TRXUSD: false
+  SOLUSD: true
+  TRXUSD: true
   UNIUSD: false
   XLMUSD: false
-start_date: "2020-01-01"
-end_date: "2023-01-01"
 
 # Labels
 threshold_pct: 1.0
