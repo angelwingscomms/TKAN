@@ -2,7 +2,7 @@
 #property version "1.00"
 #property script_show_inputs
 
-input int InpBarsToCopy = 10000;
+input int InpBarsToCopy = 30000;
 
 void OnStart() {
    Print("Fetching BTCUSD data...");
@@ -30,12 +30,18 @@ void OnStart() {
    }
    
    int copyCount = MathMin(InpBarsToCopy, totalBars);
+   Print("Requesting ", copyCount, " bars...");
+   
    int copied = CopyRates("BTCUSD", PERIOD_H1, 0, copyCount, rates);
    
    if(copied <= 0) {
       Print("Failed to copy rates: ", GetLastError());
       FileClose(fileHandle);
       return;
+   }
+   
+   if(copied < InpBarsToCopy) {
+      Print("Warning: Requested ", InpBarsToCopy, " but only got ", copied, " bars");
    }
    
    Print("Copied ", copied, " bars");
