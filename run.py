@@ -13,9 +13,9 @@ jax.default_backend = 'cpu'
 
 def load_data(path='examples/data.parquet', assets=None):
     df = pd.read_parquet(path)
-    df = df[(df.index >= pd.Timestamp('2020-01-01')) & (df.index < pd.Timestamp('2023-01-01'))]
+    df = df[(df.index >= pd.Timestamp('2021-06-01')) & (df.index < pd.Timestamp('2021-07-01'))]
     if assets is None:
-        assets = ['BTC', 'ETH', 'ADA', 'XMR', 'EOS', 'MATIC', 'TRX', 'FTM', 'BNB', 'XLM', 'ENJ', 'CHZ', 'BUSD', 'ATOM', 'LINK', 'ETC', 'XRP', 'BCH', 'LTC']
+        assets = ['BTC']
     df = df[[c for c in df.columns if 'quote asset volume' in c and any(a in c for a in assets)]]
     
     X, y = [], []
@@ -78,10 +78,6 @@ def tkan_fwd(params, x, hidden=100, sub=20):
 
 def tkan_apply(params, x, hidden=100):
     return jax.nn.sigmoid(jnp.dot(tkan_fwd(params, x, hidden), params['dense_w']) + params['dense_b'])
-
-
-
-
 
 def main():
     print("Loading data...", flush=True)
@@ -152,7 +148,6 @@ def main():
     print("="*40)
     print(f"TKAN: {tkan_time:.1f}s")
     print("="*40)
-
 
 if __name__ == '__main__':
     main()
