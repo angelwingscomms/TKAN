@@ -2,7 +2,7 @@
 #property version "1.00"
 #property script_show_inputs
 
-input int InpBarsToCopy = 2000;
+input int InpBarsToCopy = 10000;
 
 void OnStart() {
    Print("Fetching BTCUSD data...");
