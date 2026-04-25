@@ -4,6 +4,8 @@ OHLC_FIELDS = ('open', 'high', 'low', 'close')
 
 
 def load_csv(path):
+    if not path.endswith('.csv'):
+        path += '.csv'
     df = pd.read_csv(path, encoding='utf-16', parse_dates=['datetime'], date_format='%Y-%m-%d %H-%M')
     if 'symbol' not in df.columns:
         return df.set_index('datetime').sort_index()

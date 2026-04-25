@@ -39,7 +39,7 @@ def main():
     print(f"    - feature_symbols: {cfg['enabled_symbols']}")
 
     print(f"\n  Loading CSV file...")
-    df = load_csv(cfg['data_path'])
+    df = load_csv(f'./data/{cfg["data_path"]}')
     print(f"  CSV loaded: {len(df)} rows")
     print(f"  Columns: {list(df.columns)}")
 
