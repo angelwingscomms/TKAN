@@ -15,4 +15,5 @@ def load_data(config_path='config.yaml'):
         raise ValueError("No OHLC columns matched — check asset names vs data columns")
     df = df[ohlc_cols]
     df = df[(df.index >= pd.Timestamp(cfg['start_date'])) & (df.index < pd.Timestamp(cfg['end_date']))]
+    df = df.dropna()
     return cfg, df

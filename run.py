@@ -79,7 +79,7 @@ print(f"Model parameters: {total_params:,}")
 # ============================================================================
 # TRAINING: Optimize model with Adam optimizer
 # ============================================================================
-optimizer = optax.adam(learning_rate)
+optimizer = optax.chain(optax.clip_by_global_norm(1.0), optax.adam(learning_rate))
 optimizer_state = optimizer.init(params)
 
 start_time = time.time()
