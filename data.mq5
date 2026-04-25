@@ -2,24 +2,15 @@
 #property version "1.00"
 #property script_show_inputs
 
-input string StartDate = "2021.05.01";
-input string EndDate = "2021.07.01";
-input string SymbolName = "BTCUSD";
+input string InpStartDate = "2021.05.01";
+input string InpEndDate = "2021.07.01";
 
-datetime startTime, endTime;
-
-int OnInit() {
-   startTime = StringToTime(StartDate);
-   endTime = StringToTime(EndDate);
+void OnStart() {
+   datetime startTime = StringToTime(InpStartDate);
+   datetime endTime = StringToTime(InpEndDate);
    
-   Print("Fetching ", SymbolName, " data from ", StartDate, " to ", EndDate);
+   Print("Fetching BTCUSD data from ", InpStartDate, " to ", InpEndDate);
    
-   fetchAndSaveData();
-   
-   return INIT_SUCCEEDED;
-}
-
-void fetchAndSaveData() {
    string filename = "data.csv";
    int fileHandle = FileOpen(filename, FILE_CSV|FILE_WRITE, ",");
    
@@ -28,12 +19,12 @@ void fetchAndSaveData() {
       return;
    }
    
-   FileWrite(fileHandle, "datetime,open,high,low,close,volume");
+   FileWrite(fileHandle, "datetime,open,high,low,close");
    
    MqlRates rates[];
    ArraySetAsSeries(rates, true);
    
-   int copied = CopyRates(SymbolName, PERIOD_H1, startTime, endTime, rates);
+   int copied = CopyRates("BTCUSD", PERIOD_H1, startTime, endTime, rates);
    
    if(copied <= 0) {
       Print("Failed to copy rates: ", GetLastError());
@@ -52,8 +43,7 @@ void fetchAndSaveData() {
                   DoubleToString(rates[i].open, 2) + "," +
                   DoubleToString(rates[i].high, 2) + "," +
                   DoubleToString(rates[i].low, 2) + "," +
-                  DoubleToString(rates[i].close, 2) + "," +
-                  DoubleToString(rates[i].tick_volume, 2);
+                  DoubleToString(rates[i].close, 2);
       
       FileWrite(fileHandle, line);
    }

@@ -47,12 +47,9 @@ void RunModel() {
          x[i, f] = (float)((x[i, f] - NORM_MIN[f]) / range);
    }
 
-   matrixf x3d(1, 180);
-   for(int i = 0; i < NumCandles; i++)
-      for(int f = 0; f < 4; f++)
-         x3d.Set(0, i * 4 + f, x[i, f]);
-
    vectorf y(1);
+   matrixf x3d = x;
+   x3d.Resize(1, 180);
    if(!OnnxRun(OnnxHandle, 0, x3d, y)) { Print("ONNX run failed: ", GetLastError()); return; }
    Trade((double)y[0]);
 }
