@@ -6,6 +6,8 @@
 
 input double LotSize = 0.01;
 input int NumCandles = 45;
+input double TpPct = 3.0;
+input double Tolerance = 0.2;
 
 datetime lastBar = 0;
 long OnnxHandle = INVALID_HANDLE;
@@ -55,25 +57,34 @@ void RunModel() {
 }
 
 void Trade(double pred) {
+   double sl_price = 0, tp_price = 0;
    if(pred > 0.5) {
       if(PositionSelect(Symbol()) && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
          CloseTrade();
       if(!PositionSelect(Symbol())) {
+         double entry = SymbolInfoDouble(Symbol(), SYMBOL_ASK);
+         tp_price = entry * (1 + TpPct / 100);
+         sl_price = entry * (1 - TpPct * Tolerance / 100);
          MqlTradeRequest req = {}; MqlTradeResult res = {};
          req.action = TRADE_ACTION_DEAL; req.symbol = Symbol();
-         req.volume = LotSize; req.price = SymbolInfoDouble(Symbol(), SYMBOL_ASK);
+         req.volume = LotSize; req.price = entry;
+         req.sl = sl_price; req.tp = tp_price;
          req.type = ORDER_TYPE_BUY; req.comment = "TKAN_BUY";
-         if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("BUY");
+         if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("BUY SL=", sl_price, " TP=", tp_price);
       }
    } else if(pred < 0.5) {
       if(PositionSelect(Symbol()) && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
          CloseTrade();
       if(!PositionSelect(Symbol())) {
+         double entry = SymbolInfoDouble(Symbol(), SYMBOL_BID);
+         tp_price = entry * (1 - TpPct / 100);
+         sl_price = entry * (1 + TpPct * Tolerance / 100);
          MqlTradeRequest req = {}; MqlTradeResult res = {};
          req.action = TRADE_ACTION_DEAL; req.symbol = Symbol();
-         req.volume = LotSize; req.price = SymbolInfoDouble(Symbol(), SYMBOL_BID);
+         req.volume = LotSize; req.price = entry;
+         req.sl = sl_price; req.tp = tp_price;
          req.type = ORDER_TYPE_SELL; req.comment = "TKAN_SELL";
-         if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("SELL");
+         if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("SELL SL=", sl_price, " TP=", tp_price);
       }
    }
 }
