@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import time
 import optax
+from jax2onnx import to_onnx
 
 jax.default_backend = 'cpu'
 
@@ -177,6 +178,21 @@ def main():
         print(f"{i+1:>6} | {tl:>8.4f} | {vl:>8.4f}")
     print("="*48)
     print(f"TKAN time: {tkan_time:.1f}s  Final val_acc: {acc:.4f}")
+
+    print("\nExporting model to ONNX...")
+    def make_apply_fn(params):
+        def apply_fn(x, hidden=100, sub=20):
+            return jax.nn.sigmoid(jnp.dot(tkan_fwd(params, x, hidden), params['dense_w']) + params['dense_b'])
+        return apply_fn
+
+    result = to_onnx(
+        make_apply_fn(tkan_p),
+        inputs=[jax.ShapeDtypeStruct((1, 45, 4), jnp.float32)],
+        model_name='TKAN',
+        return_mode='file',
+        output_path='tkan_model.onnx'
+    )
+    print(f"Model saved to: tkan_model.onnx")
 
 if __name__ == '__main__':
     main()
