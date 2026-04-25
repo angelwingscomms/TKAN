@@ -48,7 +48,22 @@ def normalize(X_tr, X_te, y_tr, y_te):
     xmin, xmax = X_tr.min(axis=(0, 1), keepdims=True), X_tr.max(axis=(0, 1), keepdims=True)
     X_tr = (X_tr - xmin) / (xmax - xmin + 1e-8)
     X_te = (X_te - xmin) / (xmax - xmin + 1e-8)
-    return X_tr, X_te, y_tr, y_te
+    return X_tr, X_te, y_tr, y_te, xmin, xmax
+
+
+def save_norm_params(xmin, xmax):
+    xmin = xmin.squeeze()
+    xmax = xmax.squeeze()
+    n = len(xmin)
+    min_str = ", ".join(f"{v:.10g}" for v in xmin)
+    max_str = ", ".join(f"{v:.10g}" for v in xmax)
+    content = (
+        f"const double NORM_MIN[{n}] = {{{min_str}}};\n"
+        f"const double NORM_MAX[{n}] = {{{max_str}}};\n"
+    )
+    with open("norm_params.mqh", "w") as f:
+        f.write(content)
+    print(f"Saved norm_params.mqh ({n} features)")
 
 
 def init_tkan(input_dim, hidden, sub, key):
@@ -107,7 +122,8 @@ def main():
     X_tr, X_te = X[:sep], X[sep:]
     y_tr, y_te = y[:sep], y[sep:]
     
-    X_tr, X_te, y_tr, y_te = normalize(X_tr, X_te, y_tr, y_te)
+    xmin, xmax = X_tr.min(axis=(0, 1), keepdims=True), X_tr.max(axis=(0, 1), keepdims=True)
+    X_tr, X_te, y_tr, y_te = normalize(xmin, xmax, X_tr, X_te, y_tr, y_te)
     
     X_tr = jnp.array(X_tr)
     y_tr = jnp.array(y_tr)
@@ -146,7 +162,7 @@ def main():
 
     start = time.time()
     train_losses, val_losses = [], []
-    for ep in range(54):
+    for ep in range(27):
         idx = jax.random.permutation(jax.random.key(ep), len(X_tr))
         ep_loss = 0
         for i in range(0, len(X_tr), 128):
@@ -179,6 +195,8 @@ def main():
     print("="*48)
     print(f"TKAN time: {tkan_time:.1f}s  Final val_acc: {acc:.4f}")
 
+    save_norm_params(xmin, xmax)
+
     print("\nExporting model to ONNX...")
     def make_apply_fn(params):
         def apply_fn(x, hidden=100, sub=20):
@@ -190,9 +208,9 @@ def main():
         inputs=[jax.ShapeDtypeStruct((1, 45, 4), jnp.float32)],
         model_name='TKAN',
         return_mode='file',
-        output_path='tkan_model.onnx'
+        output_path='model.onnx'
     )
-    print(f"Model saved to: tkan_model.onnx")
+    print(f"Model saved to: model.onnx")
 
 if __name__ == '__main__':
     main()

@@ -5,37 +5,17 @@
 #include "norm_params.mqh"
 
 input double LotSize = 0.01;
-input int TimeframeMinutes = 60;
 input int NumCandles = 45;
-input int NumFeats = 40;
 
 datetime lastBar = 0;
 long OnnxHandle = INVALID_HANDLE;
-ENUM_TIMEFRAMES TF;
-
-string Symbols[] = {
-   "BTCUSD", "ETHUSD", "ADAUSD", "EOSUSD", "MATICUSD",
-   "TRXUSD", "XLMUSD", "LINKUSD", "BCHUSD", "LTCUSD"
-};
 
 #resource "model.onnx" as uchar ExtModel[]
 
 int OnInit() {
-   if(TimeframeMinutes < 1) { Print("TimeframeMinutes must be >= 1"); return INIT_FAILED; }
-   switch(TimeframeMinutes) {
-      case 1:  TF = PERIOD_M1;  break;
-      case 5:  TF = PERIOD_M5;  break;
-      case 15: TF = PERIOD_M15; break;
-      case 30: TF = PERIOD_M30; break;
-      case 60: TF = PERIOD_H1;  break;
-      case 240: TF = PERIOD_H4; break;
-      case 1440: TF = PERIOD_D1; break;
-      default:  TF = PERIOD_CURRENT; break;
-   }
-
-OnnxHandle = OnnxCreateFromBuffer(ExtModel, ONNX_DEFAULT);
-if(OnnxHandle == INVALID_HANDLE) { Print("ONNX create failed: ", GetLastError()); return INIT_FAILED; }
-return INIT_SUCCEEDED;
+   OnnxHandle = OnnxCreateFromBuffer(ExtModel, ONNX_DEFAULT);
+   if(OnnxHandle == INVALID_HANDLE) { Print("ONNX create failed: ", GetLastError()); return INIT_FAILED; }
+   return INIT_SUCCEEDED;
 }
 
 void OnDeinit(const int reason) {
@@ -43,26 +23,24 @@ void OnDeinit(const int reason) {
 }
 
 void OnTick() {
-   datetime barTime = iTime(Symbol(), TF, 0);
+   datetime barTime = iTime("BTCUSD", PERIOD_CURRENT, 0);
    if(barTime == lastBar) return;
    lastBar = barTime;
    RunModel();
 }
 
 void RunModel() {
-   matrixf x(NumCandles, NumFeats);
-   for(int s = 0; s < ArraySize(Symbols); s++) {
-      string sym = Symbols[s];
-      for(int i = 0; i < NumCandles; i++) {
-         int bar = NumCandles - 1 - i;
-         x[i, s*4+0] = (float)iOpen(sym, TF, bar);
-         x[i, s*4+1] = (float)iHigh(sym, TF, bar);
-         x[i, s*4+2] = (float)iLow(sym, TF, bar);
-         x[i, s*4+3] = (float)iClose(sym, TF, bar);
-      }
+   const string sym = "BTCUSD";
+   matrixf x(NumCandles, 4);
+   for(int i = 0; i < NumCandles; i++) {
+      int bar = NumCandles - 1 - i;
+      x[i, 0] = (float)iOpen(sym, PERIOD_CURRENT, bar);
+      x[i, 1] = (float)iHigh(sym, PERIOD_CURRENT, bar);
+      x[i, 2] = (float)iLow(sym, PERIOD_CURRENT, bar);
+      x[i, 3] = (float)iClose(sym, PERIOD_CURRENT, bar);
    }
 
-   for(int f = 0; f < NumFeats; f++) {
+   for(int f = 0; f < 4; f++) {
       double range = NORM_MAX[f] - NORM_MIN[f];
       if(range < 1e-8) range = 1e-8;
       for(int i = 0; i < NumCandles; i++)
