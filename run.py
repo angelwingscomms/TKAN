@@ -117,7 +117,22 @@ for epoch in range(epochs):
     # Report epoch progress
     avg_loss = epoch_loss / num_batches
     avg_accuracy = epoch_accuracy / num_batches
-    print(f"  Epoch {epoch+1}: loss={avg_loss:.4f}, accuracy={avg_accuracy:.4f}")
+
+    # Compute validation loss on held-out test set (batched, no gradients)
+    val_loss = 0.0
+    val_accuracy = 0.0
+    val_batches = 0
+    for i in range(0, len(X_test), batch_size):
+        batch_X_val = X_test[i:i+batch_size]
+        batch_y_val = y_test[i:i+batch_size]
+        val_pred = tkan_apply(params, batch_X_val, use_sigmoid=True)
+        val_loss += binary_crossentropy(val_pred, batch_y_val)
+        val_accuracy += compute_accuracy(val_pred, batch_y_val)
+        val_batches += 1
+    avg_val_loss = val_loss / val_batches
+    avg_val_accuracy = val_accuracy / val_batches
+
+    print(f"  Epoch {epoch+1}: train_loss={avg_loss:.4f}, train_acc={avg_accuracy:.4f} | val_loss={avg_val_loss:.4f}, val_acc={avg_val_accuracy:.4f}")
 
 # ============================================================================
 # EVALUATION: Test model on held-out test set
