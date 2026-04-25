@@ -16,7 +16,7 @@ string gSymbol;
 
 int OnInit() {
    gSymbol = CFG_SYMBOL;
-   if(StringLen(gSymbol) == 0) gSymbol = "BTCUSD";
+   if(StringLen(gSymbol) == 0) gSymbol = _Symbol;
    
    gOnnxHandle = OnnxCreateFromBuffer(ExtModel, ONNX_DEFAULT);
    if(gOnnxHandle == INVALID_HANDLE) { Print("ONNX create failed: ", GetLastError()); return INIT_FAILED; }
@@ -29,6 +29,12 @@ void OnDeinit(const int reason) {
 
 void OnTick() {
    datetime barTime = iTime(gSymbol, PERIOD_CURRENT, 0);
+   if(barTime == 0 && gSymbol != _Symbol) {
+      Print("Configured symbol unavailable: ", gSymbol, ". Using chart symbol: ", _Symbol);
+      gSymbol = _Symbol;
+      barTime = iTime(gSymbol, PERIOD_CURRENT, 0);
+   }
+   if(barTime == 0) return;
    if(barTime == lastBar) return;
    Print("New bar detected: ", barTime);
    lastBar = barTime;
