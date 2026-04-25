@@ -34,7 +34,7 @@ def load_config():
 
 def load_data(path='examples/data.csv', tp_pct=3.0, tolerance=0.2, horizon=24,
                target_type='atr', atr_multiplier=2.0, tp_multiplier=2.0, atr_period=9):
-    df = pd.read_csv(path, index_col=0, parse_dates=True, encoding='utf-16')
+    df = pd.read_csv(path, index_col=0, parse_dates=True, encoding='utf-16', date_format='%Y-%m-%d %H-%M')
     
     btc = df[['open', 'high', 'low', 'close']].copy()
     
