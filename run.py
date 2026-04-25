@@ -11,17 +11,35 @@ import optax
 jax.default_backend = 'cpu'
 
 
-def load_data(path='examples/data.parquet', assets=None):
+def load_data(path='examples/data.parquet', tp_pct=3.0, tolerance=0.2, horizon=24):
     df = pd.read_parquet(path)
     df = df[(df.index >= pd.Timestamp('2021-06-01')) & (df.index < pd.Timestamp('2021-07-01'))]
-    if assets is None:
-        assets = ['BTC']
-    df = df[[c for c in df.columns if 'quote asset volume' in c and any(a in c for a in assets)]]
+    
+    btc = df[['BTC open', 'BTC high', 'BTC low', 'BTC close']].copy()
+    
+    sl_pct = -tp_pct * tolerance
     
     X, y = [], []
-    for i in range(45, len(df) - 1):
-        X.append(df.iloc[i - 45:i].values)
-        y.append(1.0 if df.iloc[i + 1, 0] > df.iloc[i, 0] else 0.0)
+    for i in range(45, len(btc) - horizon):
+        X.append(btc.iloc[i - 45:i].values)
+        
+        close = btc.iloc[i]['BTC close']
+        tp_price = close * (1 + tp_pct / 100)
+        sl_price = close * (1 + sl_pct / 100)
+        
+        tp_idx = sl_idx = None
+        for j in range(1, horizon + 1):
+            high = btc.iloc[i + j]['BTC high']
+            low = btc.iloc[i + j]['BTC low']
+            if tp_idx is None and high >= tp_price:
+                tp_idx = j
+            if sl_idx is None and low <= sl_price:
+                sl_idx = j
+            if tp_idx and sl_idx:
+                break
+        
+        y.append(1.0 if tp_idx and (sl_idx is None or tp_idx < sl_idx) else 0.0)
+    
     return np.array(X, dtype=np.float32), np.array(y, dtype=np.float32).reshape(-1, 1)
 
 
