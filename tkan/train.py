@@ -19,6 +19,8 @@ def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1
     start = time.time()
     train_losses, val_losses = [], []
     num_batches = len(range(0, len(X_tr), 128))
+    best_params = params
+    best_val_loss = float('inf')
 
     for ep in range(epochs):
         ep_start = time.time()
@@ -49,6 +51,9 @@ def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1
         
         train_losses.append(train_loss)
         val_losses.append(val_loss)
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_params = params
         
         ep_elapsed = time.time() - ep_start
         eta = ep_elapsed * (epochs - ep - 1)
@@ -56,8 +61,8 @@ def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1
         print(f"Epoch {ep+1}/{epochs} [{pct}%] | train: {train_loss:.4f} ({100*train_acc:.1f}%) | val: {val_loss:.4f} ({100*val_acc:.1f}%) | ETA: {eta:.0f}s")
 
     elapsed = time.time() - start
-    preds = tkan_apply(params, X_va)
-    acc = jnp.mean((preds > 0.5) == y_va)
-    print(f"Time: {elapsed:.1f}s, Validation Accuracy: {acc:.4f}")
+    best_val_preds = tkan_apply(best_params, X_va)
+    acc = jnp.mean((best_val_preds > 0.5) == y_va)
+    print(f"Time: {elapsed:.1f}s, Best Val Loss: {best_val_loss:.4f}, Best Val Accuracy: {acc:.4f}")
 
-    return params, train_losses, val_losses, acc, elapsed
+    return best_params, train_losses, val_losses, acc, elapsed
