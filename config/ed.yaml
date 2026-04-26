@@ -12,7 +12,7 @@ limit_by_spread: true
 # Data
 data_path: "1m"
 sequence_length: 45
-n_ahead: 9
+n_ahead: 54
 feature_symbols:
   BCHUSD: true
   BTCUSD: true

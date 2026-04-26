@@ -132,7 +132,7 @@ def load_config(config_name=None):
     if config_name:
         config_path = f'config/{config_name}.yaml'
     else:
-        config_path = 'config.yaml'
+        config_path = 'config/default.yaml'
     with open(config_path) as f:
         raw_cfg = yaml.safe_load(f) or {}
     cfg = {**DEFAULTS, **{k: v for k, v in raw_cfg.items() if k != 'features'}}
