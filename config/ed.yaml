@@ -3,8 +3,8 @@ symbol: "BTCUSD"
 
 # Symbol
 target_type: "atr"
-atr_multiplier: 6.3
-tp_multiplier: 1.5
+atr_multiplier: 1.44
+tp_multiplier: 1
 atr_period: 9
 confidence_threshold: 0.6
 limit_by_spread: true
@@ -12,27 +12,27 @@ limit_by_spread: true
 # Data
 data_path: "1m"
 sequence_length: 45
-n_ahead: 54
+n_ahead: 18
 feature_symbols:
-  BCHUSD: true
+  BCHUSD: false
   BTCUSD: true
   ETHUSD: true
   LTCUSD: true
-  XRPUSD: true
-  ADAUSD: true
-  AVAXUSD: true
-  AXSUSD: true
+  XRPUSD: false
+  ADAUSD: false
+  AVAXUSD: false
+  AXSUSD: false
   DOGEUSD: true
-  DOTUSD: true
-  EOSUSD: true
-  FILUSD: true
-  LINKUSD: true
-  MATICUSD: true
-  MIOTAUSD: true
+  DOTUSD: false
+  EOSUSD: false
+  FILUSD: false
+  LINKUSD: false
+  MATICUSD: false
+  MIOTAUSD: false
   SOLUSD: true
   TRXUSD: true
-  UNIUSD: true
-  XLMUSD: true
+  UNIUSD: false
+  XLMUSD: false
 
 features:
   log_returns:
