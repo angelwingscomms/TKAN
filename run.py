@@ -221,7 +221,8 @@ def main():
     version_dir = Path(f'models/{ts}')
     version_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy('model.onnx', version_dir / 'model.onnx')
-    shutil.copy('config.yaml', version_dir / 'config.yaml')
+    config_src = f'config/{args.config}.yaml' if args.config else 'config/default.yaml'
+    shutil.copy(config_src, version_dir / 'config.yaml')
     shutil.copy('config.mqh', version_dir / 'config.mqh')
     shutil.copy('norm_params.mqh', version_dir / 'norm_params.mqh')
     (version_dir / 'model_version.txt').write_text(cfg['data_path'])

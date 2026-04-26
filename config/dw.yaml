@@ -7,16 +7,15 @@ atr_multiplier: 5.4
 tp_multiplier: 1.44
 atr_period: 9
 confidence_threshold: 0.6
-limit_by_spread: true
 
 # Data
 data_path: "1m"
 sequence_length: 45
-n_ahead: 54
+n_ahead: 9
 feature_symbols:
   BCHUSD: false
   BTCUSD: true
-  ETHUSD: true
+  ETHUSD: false
   LTCUSD: false
   XRPUSD: false
   ADAUSD: false
@@ -36,50 +35,50 @@ feature_symbols:
 
 features:
   log_returns:
-    enabled: false
+    enabled: true
     periods: [1, 5, 15, 60]
   candle_ratios:
-    enabled: false
+    enabled: true
   garman_klass:
-    enabled: false
+    enabled: true
     windows: [5, 15, 60]
   rolling_volatility:
-    enabled: false
+    enabled: true
     windows: [5, 15, 60]
   bollinger:
-    enabled: false
+    enabled: true
     periods: [20]
     std: 2.0
   price_to_sma:
-    enabled: false
+    enabled: true
     periods: [15]
   price_to_ema:
-    enabled: false
+    enabled: true
     periods: [5, 15, 50]
   ema_cross:
-    enabled: false
+    enabled: true
     pairs:
       - [5, 15]
       - [15, 50]
   rsi:
-    enabled: false
-    periods: [9, 18]
+    enabled: true
+    periods: [7, 14]
   adx:
-    enabled: false
-    periods: [18]
+    enabled: true
+    periods: [14]
   macd:
-    enabled: false
-    fast: 9
-    slow: 27
+    enabled: true
+    fast: 12
+    slow: 26
     signal: 9
   higher_timeframes:
-    enabled: false
+    enabled: true
     timeframes: [15, 60]
     log_return_periods: [1]
-    rsi_periods: [9]
+    rsi_periods: [14]
     macd:
-      fast: 9
-      slow: 27
+      fast: 12
+      slow: 26
       signal: 9
   time:
     enabled: true
@@ -88,7 +87,6 @@ features:
     day_of_week: true
 
 # Labels
-use_hold: false
 threshold_pct: 1.0
 stop_loss_pct: 0.5
 
@@ -99,13 +97,10 @@ sub_dim: 20
 # Training
 batch_size: 256
 learning_rate: 0.01
-epochs: 54
+epochs: 9
 train_test_split: 0.8
 seed: 42
 
 # Output
 model_output: "model.onnx"
 norm_output: "norm_params.mqh"
-
-use_attention: true
-attention_dim: 64
