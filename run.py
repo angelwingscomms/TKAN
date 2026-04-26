@@ -192,6 +192,14 @@ def main():
     (version_dir / 'model_version.txt').write_text(cfg['data_path'])
     print(f"Model version saved to: {version_dir}")
 
+    live_mq5 = Path('live.mq5')
+    if live_mq5.exists():
+        content = live_mq5.read_text()
+        content = content.replace('#include "config.mqh"', f'#include "models/{ts}/config.mqh"')
+        content = content.replace('#resource "\\\\Experts\\\\TKAN\\\\model.onnx"', f'#resource "\\\\Experts\\\\TKAN\\\\models\\\\{ts}\\\\model.onnx"')
+        live_mq5.write_text(content)
+        print(f"Updated live.mq5 to use model: {ts}")
+
 
 if __name__ == '__main__':
     main()
