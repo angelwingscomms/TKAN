@@ -72,7 +72,7 @@ features:
     slow: 26
     signal: 9
   higher_timeframes:
-    enabled: true
+    enabled: false
     timeframes: [15, 60]
     log_return_periods: [1]
     rsi_periods: [14]
