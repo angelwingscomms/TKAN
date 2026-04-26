@@ -175,37 +175,55 @@ double GetTP(bool isBuy) {
 
 // Model output is buy probability: 1.0 = buy, 0.0 = sell.
 void Trade(double buyProb) {
-   double threshold = CFG_CONFIDENCE_THRESHOLD;
-   double sl_price = 0, tp_price = 0;
-   if(buyProb >= threshold) {
-      if(PositionSelect(gSymbol) && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
-         CloseTrade();
-      if(!PositionSelect(gSymbol)) {
-         sl_price = GetSL(true);
-         tp_price = GetTP(true);
-         MqlTradeRequest req = {}; MqlTradeResult res = {};
-         req.action = TRADE_ACTION_DEAL; req.symbol = gSymbol;
-         req.volume = LotSize; req.price = SymbolInfoDouble(gSymbol, SYMBOL_ASK);
-         req.sl = sl_price; req.tp = tp_price;
-         req.type = ORDER_TYPE_BUY; req.comment = "TKAN_BUY";
-         if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("BUY buy_prob=", buyProb, " SL=", sl_price, " TP=", tp_price);
-      }
-   } else if(buyProb <= 1.0 - threshold) {
-      if(PositionSelect(gSymbol) && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
-         CloseTrade();
-      if(!PositionSelect(gSymbol)) {
-         sl_price = GetSL(false);
-         tp_price = GetTP(false);
-         MqlTradeRequest req = {}; MqlTradeResult res = {};
-         req.action = TRADE_ACTION_DEAL; req.symbol = gSymbol;
-         req.volume = LotSize; req.price = SymbolInfoDouble(gSymbol, SYMBOL_BID);
-         req.sl = sl_price; req.tp = tp_price;
-         req.type = ORDER_TYPE_SELL; req.comment = "TKAN_SELL";
-         if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("SELL buy_prob=", buyProb, " SL=", sl_price, " TP=", tp_price);
-      }
-   } else {
-      Print("No trade. buy_prob=", buyProb, " threshold=", threshold);
-   }
+    double threshold = CFG_CONFIDENCE_THRESHOLD;
+    double sl_price = 0, tp_price = 0;
+    if(buyProb >= threshold) {
+       if(PositionSelect(gSymbol) && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
+          CloseTrade();
+       if(!PositionSelect(gSymbol)) {
+          sl_price = GetSL(true);
+          tp_price = GetTP(true);
+          if(CFG_LIMIT_BY_SPREAD) {
+             double spread = (double)SymbolInfoInteger(gSymbol, SYMBOL_SPREAD) * SymbolInfoDouble(gSymbol, SYMBOL_POINT);
+             double entry = SymbolInfoDouble(gSymbol, SYMBOL_ASK);
+             double tpDist = tp_price - entry;
+             if(tpDist < spread * 2) {
+                Print("BUY blocked: tpDist=", tpDist, " spread*2=", spread * 2);
+                return;
+             }
+          }
+          MqlTradeRequest req = {}; MqlTradeResult res = {};
+          req.action = TRADE_ACTION_DEAL; req.symbol = gSymbol;
+          req.volume = LotSize; req.price = SymbolInfoDouble(gSymbol, SYMBOL_ASK);
+          req.sl = sl_price; req.tp = tp_price;
+          req.type = ORDER_TYPE_BUY; req.comment = "TKAN_BUY";
+          if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("BUY buy_prob=", buyProb, " SL=", sl_price, " TP=", tp_price);
+       }
+    } else if(buyProb <= 1.0 - threshold) {
+       if(PositionSelect(gSymbol) && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
+          CloseTrade();
+       if(!PositionSelect(gSymbol)) {
+          sl_price = GetSL(false);
+          tp_price = GetTP(false);
+          if(CFG_LIMIT_BY_SPREAD) {
+             double spread = (double)SymbolInfoInteger(gSymbol, SYMBOL_SPREAD) * SymbolInfoDouble(gSymbol, SYMBOL_POINT);
+             double entry = SymbolInfoDouble(gSymbol, SYMBOL_BID);
+             double tpDist = entry - tp_price;
+             if(tpDist < spread * 2) {
+                Print("SELL blocked: tpDist=", tpDist, " spread*2=", spread * 2);
+                return;
+             }
+          }
+          MqlTradeRequest req = {}; MqlTradeResult res = {};
+          req.action = TRADE_ACTION_DEAL; req.symbol = gSymbol;
+          req.volume = LotSize; req.price = SymbolInfoDouble(gSymbol, SYMBOL_BID);
+          req.sl = sl_price; req.tp = tp_price;
+          req.type = ORDER_TYPE_SELL; req.comment = "TKAN_SELL";
+          if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("SELL buy_prob=", buyProb, " SL=", sl_price, " TP=", tp_price);
+       }
+    } else {
+       Print("No trade. buy_prob=", buyProb, " threshold=", threshold);
+    }
 }
 
 void CloseTrade() {
