@@ -95,6 +95,8 @@ stop_loss_pct: 0.5
 # Model
 hidden_size: 100
 sub_dim: 20
+use_attention: false
+attention_dim: 64
 
 # Training
 batch_size: 256

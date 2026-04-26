@@ -168,6 +168,7 @@ def main():
     output_dim = 3 if cfg['use_hold'] else 1
 
     print("\n=== TKAN ===")
+    print(f"Architecture: {'dual-attention' if cfg['use_attention'] else 'base'}")
     params, train_losses, val_losses, train_accs, val_accs, elapsed = train(
         X_tr,
         y_tr,
@@ -181,6 +182,8 @@ def main():
         batch_size=cfg['batch_size'],
         seed=cfg['seed'],
         output_dim=output_dim,
+        use_attention=cfg['use_attention'],
+        attn_dim=cfg['attention_dim'],
     )
     test_loss = float(eval_loss(params, X_te, y_te))
     test_preds = tkan_apply(params, X_te)
@@ -204,7 +207,7 @@ def main():
     save_config(cfg)
 
     print("\nExporting model to ONNX...")
-    to_onnx_model(params, sequence_length=seq_len, input_dim=input_dim, hidden=hidden, sub=sub)
+    to_onnx_model(params, sequence_length=seq_len, input_dim=input_dim)
     print(f"Model saved to: model.onnx")
     model_path = Path('model.onnx')
     config_path = Path('config.mqh')

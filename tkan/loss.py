@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 from functools import partial
-from .tkan_apply import tkan_apply
+from .model import tkan_apply
 
 
 @partial(jax.jit)

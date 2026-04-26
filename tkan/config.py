@@ -46,6 +46,8 @@ DEFAULTS = {
     'sequence_length': 45,
     'hidden_size': 100,
     'sub_dim': 20,
+    'use_attention': False,
+    'attention_dim': 64,
     'batch_size': 128,
     'learning_rate': 0.01,
     'epochs': 1,

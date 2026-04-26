@@ -2,16 +2,23 @@ import jax
 import jax.numpy as jnp
 import optax
 import time
-from .tkan_init import init_tkan
-from .tkan_apply import tkan_apply
+from .model import init_tkan, tkan_apply
 from .loss import classification_loss, eval_loss, accuracy
 
 
 def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1e-3, batch_size=128, seed=42,
-          output_dim=1):
+          output_dim=1, use_attention=False, attn_dim=64):
     key = jax.random.key(seed)
     key, k = jax.random.split(key)
-    params = init_tkan(input_dim, hidden, sub, k, output_dim=output_dim)
+    params = init_tkan(
+        input_dim,
+        hidden,
+        sub,
+        k,
+        output_dim=output_dim,
+        use_attention=use_attention,
+        attn_dim=attn_dim,
+    )
     print(f"Params: {sum(p.size for p in jax.tree_util.tree_leaves(params))}")
 
     opt = optax.adam(lr)

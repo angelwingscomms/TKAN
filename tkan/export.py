@@ -52,6 +52,8 @@ def save_config(cfg):
         ('confidence_threshold', 'double', 'CFG_CONFIDENCE_THRESHOLD'),
         ('limit_by_spread', 'bool', 'CFG_LIMIT_BY_SPREAD'),
         ('use_hold', 'bool', 'CFG_USE_HOLD'),
+        ('use_attention', 'bool', 'CFG_USE_ATTENTION'),
+        ('attention_dim', 'int', 'CFG_ATTENTION_DIM'),
     ]
     for key, mql_type, name in mappings:
         v = cfg.get(key)
@@ -208,15 +210,12 @@ def make_mql5_compatible(path='model.onnx'):
     return path
 
 
-def to_onnx_model(params, sequence_length=45, input_dim=4, hidden=100, sub=20):
-    from .tkan_forward import tkan_fwd
+def to_onnx_model(params, sequence_length=45, input_dim=4):
+    from .model import tkan_apply
 
     def make_apply_fn(params_inner):
         def apply_fn(x):
-            logits = jnp.dot(tkan_fwd(params_inner, x, hidden), params_inner['dense_w']) + params_inner['dense_b']
-            if params_inner['dense_b'].shape[0] == 1:
-                return jax.nn.sigmoid(logits)
-            return jax.nn.softmax(logits, axis=-1)
+            return tkan_apply(params_inner, x)
         return apply_fn
 
     result = to_onnx(

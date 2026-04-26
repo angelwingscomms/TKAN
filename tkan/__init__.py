@@ -20,8 +20,8 @@ try:
     from .export import save_norm_params, save_config, to_onnx_model
     from .tkan_init import init_tkan
     from .tkan_cell import tkan_cell
-    from .tkan_forward import tkan_fwd
-    from .tkan_apply import tkan_apply
+    from .tkan_forward import tkan_fwd, tkan_sequence
+    from .tkan_apply import tkan_apply, tkan_apply_with_attention
     from .loss import bce_loss, classification_loss, eval_loss, accuracy
     from .train import train
 except ModuleNotFoundError:
@@ -34,7 +34,9 @@ else:
         'init_tkan',
         'tkan_cell',
         'tkan_fwd',
+        'tkan_sequence',
         'tkan_apply',
+        'tkan_apply_with_attention',
         'bce_loss',
         'classification_loss',
         'eval_loss',

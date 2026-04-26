@@ -1,12 +1,9 @@
-import jax
-import jax.numpy as jnp
-from functools import partial
-from .tkan_forward import tkan_fwd
+from .model import tkan_apply as _tkan_apply, tkan_apply_with_attention as _tkan_apply_with_attention
 
 
-@partial(jax.jit, static_argnames=['hidden'])
-def tkan_apply(params, x, hidden=100):
-    logits = jnp.dot(tkan_fwd(params, x, hidden), params['dense_w']) + params['dense_b']
-    if logits.shape[-1] == 1:
-        return jax.nn.sigmoid(logits)
-    return jax.nn.softmax(logits, axis=-1)
+def tkan_apply(params, x, hidden=100, sub=20):
+    return _tkan_apply(params, x)
+
+
+def tkan_apply_with_attention(params, x, hidden=100, sub=20):
+    return _tkan_apply_with_attention(params, x)

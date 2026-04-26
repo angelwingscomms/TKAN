@@ -1,9 +1,19 @@
 import copy
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 
-from tkan import DEFAULTS, build_feature_frame, build_samples, compute_atr
+from tkan import (
+    DEFAULTS,
+    build_feature_frame,
+    build_samples,
+    compute_atr,
+    init_tkan,
+    tkan_apply,
+    tkan_apply_with_attention,
+)
 
 
 def make_ohlc(rows=5000):
@@ -95,3 +105,24 @@ def test_build_samples_labels_hold_when_no_barrier_is_hit():
     assert X.shape[0] == 1
     assert y.shape == (1, 3)
     np.testing.assert_array_equal(y[0], np.array([0.0, 1.0, 0.0], dtype=np.float32))
+
+
+def test_attention_init_uses_wider_output_projection():
+    params = init_tkan(6, 8, 4, jax.random.PRNGKey(0), output_dim=3, use_attention=True, attn_dim=12)
+
+    assert 'feat_wx' in params
+    assert 'attn_v' in params
+    assert params['dense_w'].shape == (16, 3)
+
+
+def test_attention_apply_returns_temporal_weights():
+    params = init_tkan(5, 7, 3, jax.random.PRNGKey(1), output_dim=1, use_attention=True, attn_dim=9)
+    x = jnp.ones((2, 4, 5), dtype=jnp.float32)
+
+    preds = tkan_apply(params, x)
+    preds_with_attn, temporal_weights = tkan_apply_with_attention(params, x)
+
+    assert preds.shape == (2, 1)
+    assert temporal_weights.shape == (2, 4, 1)
+    np.testing.assert_allclose(np.asarray(preds), np.asarray(preds_with_attn), rtol=1e-5, atol=1e-6)
+    np.testing.assert_allclose(np.asarray(temporal_weights.sum(axis=1)), np.ones((2, 1)), rtol=1e-5, atol=1e-5)
