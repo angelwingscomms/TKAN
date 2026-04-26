@@ -2,6 +2,7 @@ import os
 import shutil
 os.environ['JAX_CPU_COLLECTIVE_IMPL_HEADER_ONLY'] = '1'
 
+import argparse
 from pathlib import Path
 from datetime import datetime
 
@@ -18,11 +19,15 @@ jax.default_backend = 'cpu'
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', type=str, default=None, help='Config name (without extension) to load from ./config/')
+    args = parser.parse_args()
+
     print("\n" + "#"*60)
     print("# TKAN TRAINING PIPELINE STARTING")
     print("#"*60 + "\n")
 
-    cfg = load_config()
+    cfg = load_config(args.config)
     seq_len = cfg['sequence_length']
 
     print("\n" + "="*50)

@@ -125,11 +125,15 @@ def resolve_feature_symbols(cfg):
     return cfg
 
 
-def load_config():
+def load_config(config_name=None):
     print("\n" + "="*50)
     print("LOADING CONFIG")
     print("="*50)
-    with open('config.yaml') as f:
+    if config_name:
+        config_path = f'config/{config_name}.yaml'
+    else:
+        config_path = 'config.yaml'
+    with open(config_path) as f:
         raw_cfg = yaml.safe_load(f) or {}
     cfg = {**DEFAULTS, **{k: v for k, v in raw_cfg.items() if k != 'features'}}
     cfg['feature_symbols'] = {
@@ -138,7 +142,7 @@ def load_config():
     }
     cfg['features'] = normalize_feature_config(raw_cfg.get('features'))
     cfg = resolve_feature_symbols(cfg)
-    print(f"  config.yaml loaded successfully")
+    print(f"  {config_path} loaded successfully")
     print(f"  Config keys found: {list(raw_cfg.keys())}")
     print("-"*50)
     print("  Applied settings:")
