@@ -7,8 +7,8 @@ from .tkan_apply import tkan_apply
 from .loss import bce_loss, eval_loss
 
 
-def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1e-3):
-    key = jax.random.key(42)
+def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1e-3, batch_size=128, seed=42):
+    key = jax.random.key(seed)
     key, k = jax.random.split(key)
     params = init_tkan(input_dim, hidden, sub, k)
     print(f"Params: {sum(p.size for p in jax.tree_util.tree_leaves(params))}")
@@ -18,17 +18,17 @@ def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1
 
     start = time.time()
     train_losses, val_losses, train_accs, val_accs = [], [], [], []
-    num_batches = len(range(0, len(X_tr), 128))
+    num_batches = len(range(0, len(X_tr), batch_size))
     best_params = params
     best_val_loss = float('inf')
 
     for ep in range(epochs):
         ep_start = time.time()
-        idx = jax.random.permutation(jax.random.key(ep), len(X_tr))
+        idx = jax.random.permutation(jax.random.key(seed + ep), len(X_tr))
         ep_loss = 0
         
-        for i in range(0, len(X_tr), 128):
-            b_idx = idx[i:i+128]
+        for i in range(0, len(X_tr), batch_size):
+            b_idx = idx[i:i+batch_size]
             bx, by = X_tr[b_idx], y_tr[b_idx]
             l, g = jax.value_and_grad(bce_loss)(params, bx, by)
             u, opt_st = opt.update(g, opt_st)

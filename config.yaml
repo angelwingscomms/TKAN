@@ -6,32 +6,85 @@ target_type: "atr"
 atr_multiplier: 1.44
 tp_multiplier: 1
 atr_period: 9
+confidence_threshold: 0.6
 
 # Data
 data_path: "1m"
-timeframe_minutes: 60
 sequence_length: 45
 n_ahead: 9
 feature_symbols:
   BCHUSD: false
   BTCUSD: true
-  ETHUSD: true
-  LTCUSD: true
-  XRPUSD: true
+  ETHUSD: false
+  LTCUSD: false
+  XRPUSD: false
   ADAUSD: false
   AVAXUSD: false
   AXSUSD: false
-  DOGEUSD: true
+  DOGEUSD: false
   DOTUSD: false
   EOSUSD: false
   FILUSD: false
   LINKUSD: false
   MATICUSD: false
   MIOTAUSD: false
-  SOLUSD: true
-  TRXUSD: true
+  SOLUSD: false
+  TRXUSD: false
   UNIUSD: false
   XLMUSD: false
+
+features:
+  log_returns:
+    enabled: false
+    periods: [1, 5, 15, 60]
+  candle_ratios:
+    enabled: false
+  garman_klass:
+    enabled: false
+    windows: [5, 15, 60]
+  rolling_volatility:
+    enabled: false
+    windows: [5, 15, 60]
+  bollinger:
+    enabled: false
+    periods: [20]
+    std: 2.0
+  price_to_sma:
+    enabled: false
+    periods: [15]
+  price_to_ema:
+    enabled: false
+    periods: [5, 15, 50]
+  ema_cross:
+    enabled: false
+    pairs:
+      - [5, 15]
+      - [15, 50]
+  rsi:
+    enabled: false
+    periods: [7, 14]
+  adx:
+    enabled: false
+    periods: [14]
+  macd:
+    enabled: false
+    fast: 12
+    slow: 26
+    signal: 9
+  higher_timeframes:
+    enabled: false
+    timeframes: [15, 60]
+    log_return_periods: [1]
+    rsi_periods: [14]
+    macd:
+      fast: 12
+      slow: 26
+      signal: 9
+  time:
+    enabled: false
+    hour: true
+    minute: true
+    day_of_week: true
 
 # Labels
 threshold_pct: 1.0

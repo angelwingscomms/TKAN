@@ -21,6 +21,24 @@ def save_norm_params(xmin, xmax):
 
 
 def save_config(cfg):
+    def fmt(value):
+        if isinstance(value, bool):
+            return 'true' if value else 'false'
+        if isinstance(value, str):
+            return f'"{value}"'
+        if isinstance(value, float):
+            return f'{value:.10g}'
+        return str(value)
+
+    def add_scalar(name, mql_type, value):
+        content.append(f'const {mql_type} {name} = {fmt(value)};')
+
+    def add_array(name, mql_type, values, empty_value):
+        values = list(values)
+        if not values:
+            values = [empty_value]
+        content.append(f'const {mql_type} {name}[] = {{{", ".join(fmt(v) for v in values)}}};')
+
     content = []
     mappings = [
         ('symbol', 'string', 'CFG_SYMBOL'),
@@ -31,21 +49,57 @@ def save_config(cfg):
         ('threshold_pct', 'double', 'CFG_THRESHOLD_PCT'),
         ('stop_loss_pct', 'double', 'CFG_TOLERANCE'),
         ('sequence_length', 'int', 'CFG_SEQUENCE_LENGTH'),
+        ('confidence_threshold', 'double', 'CFG_CONFIDENCE_THRESHOLD'),
     ]
     for key, mql_type, name in mappings:
         v = cfg.get(key)
         if v is None:
             from .config import DEFAULTS
             v = DEFAULTS.get(key)
-        if mql_type == 'string':
-            content.append(f'const string {name} = "{v}";')
-        else:
-            content.append(f'const {mql_type} {name} = {v};')
+        add_scalar(name, mql_type, v)
 
     feature_symbols = cfg.get('enabled_symbols') or [cfg.get('symbol')]
     input_dim = cfg.get('input_dim', len(feature_symbols) * 4)
-    content.append(f'const string CFG_FEATURE_SYMBOLS = "{",".join(feature_symbols)}";')
-    content.append(f'const int CFG_INPUT_DIM = {input_dim};')
+    add_scalar('CFG_FEATURE_SYMBOLS', 'string', ','.join(feature_symbols))
+    add_scalar('CFG_INPUT_DIM', 'int', input_dim)
+
+    features = cfg['features']
+    add_scalar('CFG_LOG_RETURNS_ENABLED', 'bool', features['log_returns']['enabled'])
+    add_array('CFG_LOG_RETURN_PERIODS', 'int', features['log_returns']['periods'], 0)
+    add_scalar('CFG_CANDLE_RATIOS_ENABLED', 'bool', features['candle_ratios']['enabled'])
+    add_scalar('CFG_GARMAN_KLASS_ENABLED', 'bool', features['garman_klass']['enabled'])
+    add_array('CFG_GARMAN_KLASS_WINDOWS', 'int', features['garman_klass']['windows'], 0)
+    add_scalar('CFG_ROLLING_VOLATILITY_ENABLED', 'bool', features['rolling_volatility']['enabled'])
+    add_array('CFG_ROLLING_VOLATILITY_WINDOWS', 'int', features['rolling_volatility']['windows'], 0)
+    add_scalar('CFG_BOLLINGER_ENABLED', 'bool', features['bollinger']['enabled'])
+    add_array('CFG_BOLLINGER_PERIODS', 'int', features['bollinger']['periods'], 0)
+    add_scalar('CFG_BOLLINGER_STD', 'double', features['bollinger']['std'])
+    add_scalar('CFG_PRICE_TO_SMA_ENABLED', 'bool', features['price_to_sma']['enabled'])
+    add_array('CFG_PRICE_TO_SMA_PERIODS', 'int', features['price_to_sma']['periods'], 0)
+    add_scalar('CFG_PRICE_TO_EMA_ENABLED', 'bool', features['price_to_ema']['enabled'])
+    add_array('CFG_PRICE_TO_EMA_PERIODS', 'int', features['price_to_ema']['periods'], 0)
+    add_scalar('CFG_EMA_CROSS_ENABLED', 'bool', features['ema_cross']['enabled'])
+    add_array('CFG_EMA_CROSS_FAST', 'int', [pair[0] for pair in features['ema_cross']['pairs']], 0)
+    add_array('CFG_EMA_CROSS_SLOW', 'int', [pair[1] for pair in features['ema_cross']['pairs']], 0)
+    add_scalar('CFG_RSI_ENABLED', 'bool', features['rsi']['enabled'])
+    add_array('CFG_RSI_PERIODS', 'int', features['rsi']['periods'], 0)
+    add_scalar('CFG_ADX_ENABLED', 'bool', features['adx']['enabled'])
+    add_array('CFG_ADX_PERIODS', 'int', features['adx']['periods'], 0)
+    add_scalar('CFG_MACD_ENABLED', 'bool', features['macd']['enabled'])
+    add_scalar('CFG_MACD_FAST', 'int', features['macd']['fast'])
+    add_scalar('CFG_MACD_SLOW', 'int', features['macd']['slow'])
+    add_scalar('CFG_MACD_SIGNAL', 'int', features['macd']['signal'])
+    add_scalar('CFG_HIGHER_TIMEFRAMES_ENABLED', 'bool', features['higher_timeframes']['enabled'])
+    add_array('CFG_HIGHER_TIMEFRAME_MINUTES', 'int', features['higher_timeframes']['timeframes'], 0)
+    add_array('CFG_HIGHER_TIMEFRAME_LOG_RETURN_PERIODS', 'int', features['higher_timeframes']['log_return_periods'], 0)
+    add_array('CFG_HIGHER_TIMEFRAME_RSI_PERIODS', 'int', features['higher_timeframes']['rsi_periods'], 0)
+    add_scalar('CFG_HIGHER_TIMEFRAME_MACD_FAST', 'int', features['higher_timeframes']['macd']['fast'])
+    add_scalar('CFG_HIGHER_TIMEFRAME_MACD_SLOW', 'int', features['higher_timeframes']['macd']['slow'])
+    add_scalar('CFG_HIGHER_TIMEFRAME_MACD_SIGNAL', 'int', features['higher_timeframes']['macd']['signal'])
+    add_scalar('CFG_TIME_FEATURES_ENABLED', 'bool', features['time']['enabled'])
+    add_scalar('CFG_TIME_HOUR_ENABLED', 'bool', features['time']['hour'])
+    add_scalar('CFG_TIME_MINUTE_ENABLED', 'bool', features['time']['minute'])
+    add_scalar('CFG_TIME_DAY_OF_WEEK_ENABLED', 'bool', features['time']['day_of_week'])
 
     with open('config.mqh', 'w') as f:
         f.write('\n'.join(content))

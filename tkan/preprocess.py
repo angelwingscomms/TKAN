@@ -30,7 +30,7 @@ def _resolve_trade(future, tp_price, sl_price, is_buy):
 def build_samples(features, target, atr, sequence_length, horizon, tp_pct, tolerance,
                  target_type, atr_multiplier, tp_multiplier):
     X, y = [], []
-    for i in range(sequence_length, len(features) - horizon):
+    for i in range(sequence_length - 1, len(features) - horizon):
         close = float(target.iloc[i]['close'])
 
         if target_type == 'atr':
@@ -58,7 +58,7 @@ def build_samples(features, target, atr, sequence_length, horizon, tp_pct, toler
         if long_win == short_win:
             continue
 
-        X.append(features.iloc[i - sequence_length:i].values)
+        X.append(features.iloc[i - sequence_length + 1:i + 1].values)
         y.append(1.0 if long_win else 0.0)
 
     return np.array(X, dtype=np.float32), np.array(y, dtype=np.float32).reshape(-1, 1)

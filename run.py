@@ -9,7 +9,7 @@ import pandas as pd
 from tkan import (
     load_config, load_csv, compute_atr, build_samples,
     normalize, save_norm_params, save_config, to_onnx_model, train, eval_loss, tkan_apply,
-    select_feature_frame, select_symbol_ohlc,
+    build_feature_frame, select_symbol_ohlc,
 )
 
 jax.default_backend = 'cpu'
@@ -43,7 +43,7 @@ def main():
     print(f"  CSV loaded: {len(df)} rows")
     print(f"  Columns: {list(df.columns)}")
 
-    features = select_feature_frame(df, cfg['enabled_symbols'])
+    features = build_feature_frame(df, cfg)
     target = select_symbol_ohlc(df, cfg['symbol'])
     merged = pd.concat([features, target.add_prefix('target_')], axis=1).dropna()
     features = merged[features.columns].copy()
@@ -68,7 +68,7 @@ def main():
         tp_multiplier=cfg['tp_multiplier']
     )
 
-    total_candidates = max(0, len(features) - seq_len - cfg['n_ahead'])
+    total_candidates = max(0, len(features) - seq_len - cfg['n_ahead'] + 1)
     buy_count = int(y_arr.sum())
     sell_count = len(y_arr) - buy_count
     dropped_count = total_candidates - len(X_arr)
@@ -131,12 +131,22 @@ def main():
     print(f"    y_test:  {y_te.shape}")
     print("-"*50 + "\n")
 
-    hidden, sub = 100, 20
+    hidden, sub = cfg['hidden_size'], cfg['sub_dim']
     input_dim = X_tr.shape[-1]
 
     print("\n=== TKAN ===")
     params, train_losses, val_losses, train_accs, val_accs, elapsed = train(
-        X_tr, y_tr, X_va, y_va, input_dim, hidden, sub, epochs=cfg['epochs'], lr=cfg['learning_rate']
+        X_tr,
+        y_tr,
+        X_va,
+        y_va,
+        input_dim,
+        hidden,
+        sub,
+        epochs=cfg['epochs'],
+        lr=cfg['learning_rate'],
+        batch_size=cfg['batch_size'],
+        seed=cfg['seed'],
     )
     test_loss = float(eval_loss(params, X_te, y_te))
     test_preds = tkan_apply(params, X_te)
