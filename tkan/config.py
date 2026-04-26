@@ -150,10 +150,15 @@ def load_config(config_name=None):
     print("  Applied settings:")
     for k, v in DEFAULTS.items():
         if k in raw_cfg:
-            print(f"    [{k}] = {cfg[k]} (from config)")
+            print(f"    {k} = {cfg[k]} (from config)")
         else:
-            print(f"    [{k}] = {v} (DEFAULT)")
-    print(f"    [enabled_symbols] = {cfg['enabled_symbols']}")
-    print(f"    [enabled_feature_groups] = {[name for name, section in cfg['features'].items() if section.get('enabled')]}")
+            print(f"    {k} = {v} (DEFAULT)")
+    print(f"    feature_symbols =")
+    for k, v in cfg['feature_symbols'].items():
+        print(f"      {k}: {v}")
+    print(f"    enabled_symbols = {cfg['enabled_symbols']}")
+    print(f"    features =")
+    for k, v in cfg['features'].items():
+        print(f"      {k}: {v}")
     print("="*50 + "\n")
     return cfg

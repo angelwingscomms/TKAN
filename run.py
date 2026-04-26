@@ -44,7 +44,6 @@ def main():
     print(f"    - tp_multiplier: {cfg['tp_multiplier']}")
     print(f"    - atr_period: {cfg['atr_period']}")
     print(f"    - target_symbol: {cfg['symbol']}")
-    print(f"    - feature_symbols: {cfg['enabled_symbols']}")
 
     print(f"\n  Loading CSV file...")
     df = load_csv(f'./data/{cfg["data_path"]}')
@@ -141,8 +140,8 @@ def main():
     print("NORMALIZING DATA")
     print("-"*50)
     xmin, xmax = X_tr.min(axis=(0, 1), keepdims=True), X_tr.max(axis=(0, 1), keepdims=True)
-    print(f"  X_min range: [{xmin.min():.4f}, {xmin.max():.4f}]")
-    print(f"  X_max range: [{xmax.min():.4f}, {xmax.max():.4f}]")
+    print(f"  X_min range: {xmin.min():.4f}, {xmin.max():.4f}")
+    print(f"  X_max range: {xmax.min():.4f}, {xmax.max():.4f}")
     X_tr, X_va, X_te, y_tr, y_va, y_te = normalize(xmin, xmax, X_tr, X_va, X_te, y_tr, y_va, y_te)
     print("  Normalization applied!")
 
@@ -187,6 +186,31 @@ def main():
     test_loss = float(eval_loss(params, X_te, y_te))
     test_preds = tkan_apply(params, X_te)
     test_acc = float(accuracy(test_preds, y_te))
+
+    if cfg['use_hold']:
+        y_true = jnp.argmax(y_te, axis=-1)
+        y_pred = jnp.argmax(test_preds, axis=-1)
+        classes = ['Buy', 'Hold', 'Sell']
+    else:
+        y_true = (y_te > 0.5).flatten().astype(int)
+        y_pred = (test_preds > 0.5).flatten().astype(int)
+        classes = ['Sell', 'Buy']
+
+    n_classes = len(classes)
+    cm = jnp.zeros((n_classes, n_classes), dtype=int)
+    for t, p in zip(y_true, y_pred):
+        cm = cm.at[t, p].add(1)
+    cm_np = jnp.array(cm)
+
+    cm_lines = ["|", "|:---:" * (n_classes + 1) + "|"]
+    cm_lines[0] = "| True \\ Pred |" + "|".join(classes) + "|"
+    cm_lines[1] = "|:" + "---:|" * (n_classes + 1)
+    for i, row in enumerate(cm_np):
+        cm_lines.append(f"| {classes[i]} |" + "|".join(str(x) for x in row) + "|")
+
+    cm_md = "# Confusion Matrix\n\n" + "\n".join(cm_lines) + f"\n\n**Test Accuracy:** {100*test_acc:.2f}%\n"
+    (version_dir / 'confusion-matrix.md').write_text(cm_md)
+    print(f"Confusion matrix saved to: {version_dir / 'confusion-matrix.md'}")
 
     print("\n" + "="*60)
     print("SUMMARY")
