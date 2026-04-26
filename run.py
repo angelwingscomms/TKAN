@@ -161,7 +161,8 @@ def main():
         print(f"{i+1:>5} | {vl:>8.4f} | {va*100:>7.2f}% | {tl:>10.4f} | {ta*100:>9.2f}%")
     print("="*60)
     final_va = val_accs[-1]
-    print(f"Final val_acc: {100*final_va:.2f}% | Test loss: {test_loss:.4f} | Test acc: {100*test_acc:.2f}%")
+    final_vl = val_losses[-1]
+    print(f"Final val_loss: {final_vl:.4f} | val_acc: {100*final_va:.2f}% | Test loss: {test_loss:.4f} | Test acc: {100*test_acc:.2f}%")
     print(f"Total time: {elapsed:.1f}s")
 
     cfg['input_dim'] = int(input_dim)
