@@ -167,6 +167,9 @@ def main():
 
     print("\n=== TKAN ===")
     print(f"Architecture: {'dual-attention' if cfg['use_attention'] else 'base'}")
+    ts = datetime.now().strftime("%d%m-%H%M%S")
+    version_dir = Path(f'models/{ts}')
+    version_dir.mkdir(parents=True, exist_ok=True)
     params, train_losses, val_losses, train_accs, val_accs, elapsed = train(
         X_tr,
         y_tr,
@@ -240,9 +243,6 @@ def main():
     if not expert_path.exists() or expert_path.stat().st_mtime < latest_input:
         print("live.ex5 is older than model.onnx/config.mqh/norm_params.mqh. Recompile live.mq5 in MetaEditor before running the tester.")
 
-    ts = datetime.now().strftime("%d%m-%H%M%S")
-    version_dir = Path(f'models/{ts}')
-    version_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy('model.onnx', version_dir / 'model.onnx')
     config_src = f'config/{args.config}.yaml' if args.config else 'config/default.yaml'
     shutil.copy(config_src, version_dir / 'config.yaml')

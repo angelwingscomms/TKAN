@@ -3,7 +3,7 @@ symbol: "BTCUSD"
 
 # Symbol
 target_type: "atr"
-atr_multiplier: 5.4
+atr_multiplier: 1.44
 tp_multiplier: 1.44
 atr_period: 9
 confidence_threshold: 0.6
