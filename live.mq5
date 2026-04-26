@@ -2,7 +2,7 @@
 #property version "1.00"
 #property strict
 
-#include "config.mqh"
+#include "models/2604-132114/config.mqh"
 #include "norm_params.mqh"
 #include "live/common.mq5"
 #include "live/log_returns.mq5"
@@ -19,7 +19,7 @@
 #include "live/higher_timeframes.mq5"
 #include "live/time_features.mq5"
 
-#resource "\\Experts\\TKAN\\model.onnx" as uchar ExtModel[]
+#resource "\\Experts\\TKAN\\models\\2604-132114\\model.onnx" as uchar ExtModel[]
 
 input double LotSize = 0.01;
 
