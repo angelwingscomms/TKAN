@@ -1,7 +1,9 @@
 import os
+import shutil
 os.environ['JAX_CPU_COLLECTIVE_IMPL_HEADER_ONLY'] = '1'
 
 from pathlib import Path
+from datetime import datetime
 
 import jax
 import jax.numpy as jnp
@@ -179,6 +181,16 @@ def main():
     latest_input = max(path.stat().st_mtime for path in (model_path, config_path, norm_path))
     if not expert_path.exists() or expert_path.stat().st_mtime < latest_input:
         print("live.ex5 is older than model.onnx/config.mqh/norm_params.mqh. Recompile live.mq5 in MetaEditor before running the tester.")
+
+    ts = datetime.now().strftime("%d%m-%H%M%S")
+    version_dir = Path(f'models/{ts}')
+    version_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy('model.onnx', version_dir / 'model.onnx')
+    shutil.copy('config.yaml', version_dir / 'config.yaml')
+    shutil.copy('config.mqh', version_dir / 'config.mqh')
+    shutil.copy('norm_params.mqh', version_dir / 'norm_params.mqh')
+    (version_dir / 'model_version.txt').write_text(cfg['data_path'])
+    print(f"Model version saved to: {version_dir}")
 
 
 if __name__ == '__main__':
