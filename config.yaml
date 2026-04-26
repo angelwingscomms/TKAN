@@ -3,8 +3,8 @@ symbol: "BTCUSD"
 
 # Symbol
 target_type: "atr"
-atr_multiplier: 1.44
-tp_multiplier: 1
+atr_multiplier: 6.3
+tp_multiplier: 1.5
 atr_period: 9
 confidence_threshold: 0.6
 
@@ -35,44 +35,44 @@ feature_symbols:
 
 features:
   log_returns:
-    enabled: false
+    enabled: true
     periods: [1, 5, 15, 60]
   candle_ratios:
-    enabled: false
+    enabled: true
   garman_klass:
-    enabled: false
+    enabled: true
     windows: [5, 15, 60]
   rolling_volatility:
-    enabled: false
+    enabled: true
     windows: [5, 15, 60]
   bollinger:
-    enabled: false
+    enabled: true
     periods: [20]
     std: 2.0
   price_to_sma:
-    enabled: false
+    enabled: true
     periods: [15]
   price_to_ema:
-    enabled: false
+    enabled: true
     periods: [5, 15, 50]
   ema_cross:
-    enabled: false
+    enabled: true
     pairs:
       - [5, 15]
       - [15, 50]
   rsi:
-    enabled: false
+    enabled: true
     periods: [7, 14]
   adx:
-    enabled: false
+    enabled: true
     periods: [14]
   macd:
-    enabled: false
+    enabled: true
     fast: 12
     slow: 26
     signal: 9
   higher_timeframes:
-    enabled: false
+    enabled: true
     timeframes: [15, 60]
     log_return_periods: [1]
     rsi_periods: [14]
@@ -81,7 +81,7 @@ features:
       slow: 26
       signal: 9
   time:
-    enabled: false
+    enabled: true
     hour: true
     minute: true
     day_of_week: true
