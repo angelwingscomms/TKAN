@@ -224,6 +224,37 @@ def main():
     (version_dir / 'model_version.txt').write_text(cfg['data_path'])
     print(f"Model version saved to: {version_dir}")
 
+    best_val_loss = val_losses[jnp.argmin(jnp.array(val_losses)).item()]
+    best_val_acc = val_accs[jnp.argmin(jnp.array(val_losses)).item()]
+    param_count = sum(p.size for p in jax.tree_util.tree_leaves(params))
+
+    details = f"""# Training Details
+
+**Total Parameters:** {param_count:,}
+**Training Time:** {elapsed:.1f}s
+
+## Epoch-by-Epoch Results
+
+| Epoch | val_loss | val_acc | train_loss | train_acc |
+|-------|----------|---------|------------|-----------|
+"""
+    for i, (vl, va, tl, ta) in enumerate(zip(val_losses, val_accs, train_losses, train_accs)):
+        details += f"| {i+1} | {vl:.4f} | {va*100:.2f}% | {tl:.4f} | {ta*100:.2f}% |\n"
+
+    details += f"""
+## Final Metrics
+
+- **Best Val Loss:** {best_val_loss:.4f}
+- **Best Val Acc:** {100*best_val_acc:.2f}%
+- **Final Val Loss:** {val_losses[-1]:.4f}
+- **Final Val Acc:** {100*val_accs[-1]:.2f}%
+- **Test Loss:** {test_loss:.4f}
+- **Test Acc:** {100*test_acc:.2f}%
+"""
+
+    (version_dir / 'details.md').write_text(details)
+    print(f"Training details saved to: {version_dir / 'details.md'}")
+
     live_mq5 = Path('live.mq5')
     if live_mq5.exists():
         content = live_mq5.read_text()

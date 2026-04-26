@@ -16,21 +16,21 @@ n_ahead: 18
 feature_symbols:
   BCHUSD: false
   BTCUSD: true
-  ETHUSD: true
-  LTCUSD: true
+  ETHUSD: false
+  LTCUSD: false
   XRPUSD: false
   ADAUSD: false
   AVAXUSD: false
   AXSUSD: false
-  DOGEUSD: true
+  DOGEUSD: false
   DOTUSD: false
   EOSUSD: false
   FILUSD: false
   LINKUSD: false
   MATICUSD: false
   MIOTAUSD: false
-  SOLUSD: true
-  TRXUSD: true
+  SOLUSD: false
+  TRXUSD: false
   UNIUSD: false
   XLMUSD: false
 

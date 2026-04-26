@@ -12,25 +12,25 @@ limit_by_spread: true
 # Data
 data_path: "1m"
 sequence_length: 45
-n_ahead: 18
+n_ahead: 54
 feature_symbols:
   BCHUSD: false
   BTCUSD: true
   ETHUSD: true
-  LTCUSD: true
+  LTCUSD: false
   XRPUSD: false
   ADAUSD: false
   AVAXUSD: false
   AXSUSD: false
-  DOGEUSD: true
+  DOGEUSD: false
   DOTUSD: false
   EOSUSD: false
   FILUSD: false
   LINKUSD: false
   MATICUSD: false
   MIOTAUSD: false
-  SOLUSD: true
-  TRXUSD: true
+  SOLUSD: false
+  TRXUSD: false
   UNIUSD: false
   XLMUSD: false
 
