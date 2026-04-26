@@ -132,20 +132,28 @@ void RunModel() {
          x[i, f] = (float)((x[i, f] - NORM_MIN[f]) / range);
    }
 
-   vectorf y(1);
+   vectorf y(CFG_USE_HOLD ? 3 : 1);
    matrixf x3d = x;
    x3d.Resize(1, numCandles * CFG_INPUT_DIM);
    if(!OnnxRun(gOnnxHandle, 0, x3d, y)) { Print("ONNX run failed: ", GetLastError()); return; }
    double buyProb = (double)y[0];
-   if(!MathIsValidNumber(buyProb)) { Print("Invalid ONNX output: ", buyProb); return; }
-   if(buyProb < 0.0 || buyProb > 1.0) { Print("ONNX output out of range: ", buyProb); return; }
-   Print("buy_prob=", buyProb, " sell_prob=", 1.0 - buyProb);
-   Trade(buyProb);
+   double holdProb = CFG_USE_HOLD ? (double)y[1] : 0.0;
+   double sellProb = CFG_USE_HOLD ? (double)y[2] : 1.0 - buyProb;
+   if(!MathIsValidNumber(buyProb) || !MathIsValidNumber(holdProb) || !MathIsValidNumber(sellProb)) {
+      Print("Invalid ONNX output: buy=", buyProb, " hold=", holdProb, " sell=", sellProb);
+      return;
+   }
+   if(buyProb < 0.0 || buyProb > 1.0 || holdProb < 0.0 || holdProb > 1.0 || sellProb < 0.0 || sellProb > 1.0) {
+      Print("ONNX output out of range: buy=", buyProb, " hold=", holdProb, " sell=", sellProb);
+      return;
+   }
+   Print("buy_prob=", buyProb, " hold_prob=", holdProb, " sell_prob=", sellProb);
+   Trade(buyProb, holdProb, sellProb);
 }
 
 double GetSL(bool isBuy) {
    double entry = isBuy ? SymbolInfoDouble(gSymbol, SYMBOL_ASK) : SymbolInfoDouble(gSymbol, SYMBOL_BID);
-   
+
    if(CFG_TARGET_TYPE == "atr") {
       double atrBuf[];
       CopyBuffer(gAtrHandle, 0, 0, 1, atrBuf);
@@ -160,7 +168,7 @@ double GetSL(bool isBuy) {
 
 double GetTP(bool isBuy) {
    double entry = isBuy ? SymbolInfoDouble(gSymbol, SYMBOL_ASK) : SymbolInfoDouble(gSymbol, SYMBOL_BID);
-   
+
    if(CFG_TARGET_TYPE == "atr") {
       double atrBuf[];
       CopyBuffer(gAtrHandle, 0, 0, 1, atrBuf);
@@ -173,11 +181,12 @@ double GetTP(bool isBuy) {
    }
 }
 
-// Model output is buy probability: 1.0 = buy, 0.0 = sell.
-void Trade(double buyProb) {
+// Model output is BUY/HOLD/SELL probabilities when CFG_USE_HOLD is true.
+// Otherwise it is the old single buy probability.
+void Trade(double buyProb, double holdProb, double sellProb) {
     double threshold = CFG_CONFIDENCE_THRESHOLD;
     double sl_price = 0, tp_price = 0;
-    if(buyProb >= threshold) {
+    if(buyProb >= threshold && buyProb >= holdProb && buyProb >= sellProb) {
        if(PositionSelect(gSymbol) && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
           CloseTrade();
        if(!PositionSelect(gSymbol)) {
@@ -197,9 +206,9 @@ void Trade(double buyProb) {
           req.volume = LotSize; req.price = SymbolInfoDouble(gSymbol, SYMBOL_ASK);
           req.sl = sl_price; req.tp = tp_price;
           req.type = ORDER_TYPE_BUY; req.comment = "TKAN_BUY";
-          if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("BUY buy_prob=", buyProb, " SL=", sl_price, " TP=", tp_price);
+          if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("BUY buy_prob=", buyProb, " hold_prob=", holdProb, " sell_prob=", sellProb, " SL=", sl_price, " TP=", tp_price);
        }
-    } else if(buyProb <= 1.0 - threshold) {
+    } else if(sellProb >= threshold && sellProb >= buyProb && sellProb >= holdProb) {
        if(PositionSelect(gSymbol) && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
           CloseTrade();
        if(!PositionSelect(gSymbol)) {
@@ -219,10 +228,10 @@ void Trade(double buyProb) {
           req.volume = LotSize; req.price = SymbolInfoDouble(gSymbol, SYMBOL_BID);
           req.sl = sl_price; req.tp = tp_price;
           req.type = ORDER_TYPE_SELL; req.comment = "TKAN_SELL";
-          if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("SELL buy_prob=", buyProb, " SL=", sl_price, " TP=", tp_price);
+          if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("SELL buy_prob=", buyProb, " hold_prob=", holdProb, " sell_prob=", sellProb, " SL=", sl_price, " TP=", tp_price);
        }
     } else {
-       Print("No trade. buy_prob=", buyProb, " threshold=", threshold);
+       Print("No trade. buy_prob=", buyProb, " hold_prob=", holdProb, " sell_prob=", sellProb, " threshold=", threshold);
     }
 }
 

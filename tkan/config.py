@@ -34,6 +34,7 @@ def _default_features():
 
 DEFAULTS = {
     'symbol': 'BTCUSD',
+    'use_hold': True,
     'target_type': 'atr',
     'atr_multiplier': 2.0,
     'tp_multiplier': 2.0,
@@ -51,6 +52,7 @@ DEFAULTS = {
     'seed': 42,
     'train_test_split': 0.8,
     'confidence_threshold': 0.6,
+    'limit_by_spread': True,
     'model_output': 'model.onnx',
     'norm_output': 'norm_params.mqh',
     'feature_symbols': {symbol: True for symbol in DEFAULT_FEATURE_SYMBOLS},

@@ -50,6 +50,8 @@ def save_config(cfg):
         ('stop_loss_pct', 'double', 'CFG_TOLERANCE'),
         ('sequence_length', 'int', 'CFG_SEQUENCE_LENGTH'),
         ('confidence_threshold', 'double', 'CFG_CONFIDENCE_THRESHOLD'),
+        ('limit_by_spread', 'bool', 'CFG_LIMIT_BY_SPREAD'),
+        ('use_hold', 'bool', 'CFG_USE_HOLD'),
     ]
     for key, mql_type, name in mappings:
         v = cfg.get(key)
@@ -211,7 +213,10 @@ def to_onnx_model(params, sequence_length=45, input_dim=4, hidden=100, sub=20):
 
     def make_apply_fn(params_inner):
         def apply_fn(x):
-            return jax.nn.sigmoid(jnp.dot(tkan_fwd(params_inner, x, hidden), params_inner['dense_w']) + params_inner['dense_b'])
+            logits = jnp.dot(tkan_fwd(params_inner, x, hidden), params_inner['dense_w']) + params_inner['dense_b']
+            if params_inner['dense_b'].shape[0] == 1:
+                return jax.nn.sigmoid(logits)
+            return jax.nn.softmax(logits, axis=-1)
         return apply_fn
 
     result = to_onnx(

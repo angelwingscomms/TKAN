@@ -7,12 +7,11 @@ atr_multiplier: 6.3
 tp_multiplier: 1.5
 atr_period: 9
 confidence_threshold: 0.6
-limit_by_spread: true
 
 # Data
 data_path: "1m"
 sequence_length: 45
-n_ahead: 9
+n_ahead: 54
 feature_symbols:
   BCHUSD: false
   BTCUSD: true
@@ -88,7 +87,6 @@ features:
     day_of_week: true
 
 # Labels
-use_hold: true
 threshold_pct: 1.0
 stop_loss_pct: 0.5
 

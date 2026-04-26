@@ -4,13 +4,14 @@ import optax
 import time
 from .tkan_init import init_tkan
 from .tkan_apply import tkan_apply
-from .loss import bce_loss, eval_loss
+from .loss import classification_loss, eval_loss, accuracy
 
 
-def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1e-3, batch_size=128, seed=42):
+def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1e-3, batch_size=128, seed=42,
+          output_dim=1):
     key = jax.random.key(seed)
     key, k = jax.random.split(key)
-    params = init_tkan(input_dim, hidden, sub, k)
+    params = init_tkan(input_dim, hidden, sub, k, output_dim=output_dim)
     print(f"Params: {sum(p.size for p in jax.tree_util.tree_leaves(params))}")
 
     opt = optax.adam(lr)
@@ -30,7 +31,7 @@ def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1
         for i in range(0, len(X_tr), batch_size):
             b_idx = idx[i:i+batch_size]
             bx, by = X_tr[b_idx], y_tr[b_idx]
-            l, g = jax.value_and_grad(bce_loss)(params, bx, by)
+            l, g = jax.value_and_grad(classification_loss)(params, bx, by)
             u, opt_st = opt.update(g, opt_st)
             params = optax.apply_updates(params, u)
             ep_loss += l
@@ -39,9 +40,9 @@ def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1
         val_loss = eval_loss(params, X_va, y_va)
         
         train_preds = tkan_apply(params, X_tr)
-        train_acc = float(jnp.mean((train_preds > 0.5) == y_tr))
+        train_acc = float(accuracy(train_preds, y_tr))
         val_preds = tkan_apply(params, X_va)
-        val_acc = float(jnp.mean((val_preds > 0.5) == y_va))
+        val_acc = float(accuracy(val_preds, y_va))
         
         train_losses.append(train_loss)
         val_losses.append(val_loss)
@@ -55,7 +56,7 @@ def train(X_tr, y_tr, X_va, y_va, input_dim, hidden=100, sub=20, epochs=27, lr=1
 
     elapsed = time.time() - start
     best_val_preds = tkan_apply(best_params, X_va)
-    acc = jnp.mean((best_val_preds > 0.5) == y_va)
+    acc = accuracy(best_val_preds, y_va)
     print(f"\nDone! Time: {elapsed:.1f}s | Best Val Loss: {best_val_loss:.4f} | Best Val Acc: {100*acc:.2f}%")
 
     return best_params, train_losses, val_losses, train_accs, val_accs, elapsed

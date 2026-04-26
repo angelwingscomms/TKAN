@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 
 
-def init_tkan(input_dim, hidden, sub, key):
+def init_tkan(input_dim, hidden, sub, key, output_dim=1):
     k = jax.random.split(key, 6)
     return {
         'wx': jax.random.normal(k[0], (input_dim, hidden * 3)) * 0.3,
@@ -13,6 +13,6 @@ def init_tkan(input_dim, hidden, sub, key):
         'sub_k': jax.random.normal(k[4], (sub * 2,)) * 0.2,
         'agg_w': jax.random.normal(k[5], (sub, hidden)) * 0.3,
         'agg_b': jnp.zeros((hidden,)),
-        'dense_w': jax.random.normal(k[0], (hidden, 1)) * 0.3,
-        'dense_b': jnp.zeros((1,)),
+        'dense_w': jax.random.normal(k[0], (hidden, output_dim)) * 0.3,
+        'dense_b': jnp.zeros((output_dim,)),
     }

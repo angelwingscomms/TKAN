@@ -59,9 +59,39 @@ def test_feature_builder_and_labels_produce_samples():
         target_type='pct',
         atr_multiplier=1.0,
         tp_multiplier=1.0,
+        use_hold=False,
     )
 
     assert X.ndim == 3
     assert X.shape[-1] == features.shape[1]
     assert len(X) == len(y)
     assert len(X) > 0
+
+
+def test_build_samples_labels_hold_when_no_barrier_is_hit():
+    features = pd.DataFrame({'feature': [0.0, 1.0, 2.0, 3.0]})
+    target = pd.DataFrame({
+        'open': [100.0, 100.0, 100.0, 100.0],
+        'high': [100.1, 100.2, 100.3, 100.4],
+        'low': [99.9, 99.8, 99.7, 99.6],
+        'close': [100.0, 100.0, 100.0, 100.0],
+    })
+    atr = pd.Series([1.0, 1.0, 1.0, 1.0])
+
+    X, y = build_samples(
+        features,
+        target,
+        atr,
+        sequence_length=2,
+        horizon=2,
+        tp_pct=1.0,
+        tolerance=0.5,
+        target_type='pct',
+        atr_multiplier=1.0,
+        tp_multiplier=1.0,
+        use_hold=True,
+    )
+
+    assert X.shape[0] == 1
+    assert y.shape == (1, 3)
+    np.testing.assert_array_equal(y[0], np.array([0.0, 1.0, 0.0], dtype=np.float32))

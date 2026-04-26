@@ -11,7 +11,7 @@ import pandas as pd
 from tkan import (
     load_config, load_csv, compute_atr, build_samples,
     normalize, save_norm_params, save_config, to_onnx_model, train, eval_loss, tkan_apply,
-    build_feature_frame, select_symbol_ohlc,
+    build_feature_frame, select_symbol_ohlc, accuracy,
 )
 
 jax.default_backend = 'cpu'
@@ -33,6 +33,7 @@ def main():
     print(f"    - tp_pct: {cfg['threshold_pct']}")
     print(f"    - tolerance: {cfg['stop_loss_pct']}")
     print(f"    - horizon: {cfg['n_ahead']}")
+    print(f"    - use_hold: {cfg['use_hold']}")
     print(f"    - target_type: {cfg['target_type']}")
     print(f"    - atr_multiplier: {cfg['atr_multiplier']}")
     print(f"    - tp_multiplier: {cfg['tp_multiplier']}")
@@ -67,19 +68,29 @@ def main():
         tolerance=cfg['stop_loss_pct'],
         target_type=cfg['target_type'],
         atr_multiplier=cfg['atr_multiplier'],
-        tp_multiplier=cfg['tp_multiplier']
+        tp_multiplier=cfg['tp_multiplier'],
+        use_hold=cfg['use_hold'],
     )
 
     total_candidates = max(0, len(features) - seq_len - cfg['n_ahead'] + 1)
-    buy_count = int(y_arr.sum())
-    sell_count = len(y_arr) - buy_count
+    if cfg['use_hold']:
+        buy_count = int(y_arr[:, 0].sum())
+        hold_count = int(y_arr[:, 1].sum())
+        sell_count = int(y_arr[:, 2].sum())
+    else:
+        buy_count = int(y_arr.sum())
+        sell_count = len(y_arr) - buy_count
     dropped_count = total_candidates - len(X_arr)
     if len(X_arr) == 0:
+        if cfg['use_hold']:
+            raise ValueError("No labeled samples were produced. Too many windows were dropped as ambiguous.")
         raise ValueError("No clean labeled samples were produced. Too many windows were dropped as ambiguous or unresolved.")
-    print(f"\n  Done! Generated {len(X_arr)} clean samples")
+    print(f"\n  Done! Generated {len(X_arr)} labeled samples")
     print(f"    - X shape: {X_arr.shape}")
     print(f"    - y shape: {y_arr.shape}")
     print(f"    - Buy labels:  {buy_count} ({100*buy_count/len(y_arr):.1f}%)")
+    if cfg['use_hold']:
+        print(f"    - Hold labels: {hold_count} ({100*hold_count/len(y_arr):.1f}%)")
     print(f"    - Sell labels: {sell_count} ({100*sell_count/len(y_arr):.1f}%)")
     print(f"    - Dropped windows: {dropped_count}")
     print("="*50 + "\n")
@@ -135,6 +146,7 @@ def main():
 
     hidden, sub = cfg['hidden_size'], cfg['sub_dim']
     input_dim = X_tr.shape[-1]
+    output_dim = 3 if cfg['use_hold'] else 1
 
     print("\n=== TKAN ===")
     params, train_losses, val_losses, train_accs, val_accs, elapsed = train(
@@ -149,10 +161,11 @@ def main():
         lr=cfg['learning_rate'],
         batch_size=cfg['batch_size'],
         seed=cfg['seed'],
+        output_dim=output_dim,
     )
     test_loss = float(eval_loss(params, X_te, y_te))
     test_preds = tkan_apply(params, X_te)
-    test_acc = float(jnp.mean((test_preds > 0.5) == y_te))
+    test_acc = float(accuracy(test_preds, y_te))
 
     print("\n" + "="*60)
     print("SUMMARY")

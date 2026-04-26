@@ -1,5 +1,9 @@
 import numpy as np
 
+BUY = 0
+HOLD = 1
+SELL = 2
+
 
 def compute_atr(ohlc, period=9):
     prev_close = ohlc['close'].shift(1)
@@ -27,8 +31,14 @@ def _resolve_trade(future, tp_price, sl_price, is_buy):
     return None
 
 
+def _one_hot(label):
+    y = np.zeros(3, dtype=np.float32)
+    y[label] = 1.0
+    return y
+
+
 def build_samples(features, target, atr, sequence_length, horizon, tp_pct, tolerance,
-                 target_type, atr_multiplier, tp_multiplier):
+                 target_type, atr_multiplier, tp_multiplier, use_hold=True):
     X, y = [], []
     for i in range(sequence_length - 1, len(features) - horizon):
         close = float(target.iloc[i]['close'])
@@ -53,12 +63,17 @@ def build_samples(features, target, atr, sequence_length, horizon, tp_pct, toler
         if 'ambiguous' in (long_result, short_result):
             continue
 
-        long_win = long_result == 'tp'
-        short_win = short_result == 'tp'
-        if long_win == short_win:
+        if long_result == 'tp' and short_result != 'tp':
+            label = BUY
+        elif short_result == 'tp' and long_result != 'tp':
+            label = SELL
+        elif use_hold and long_result != 'tp' and short_result != 'tp':
+            label = HOLD
+        else:
             continue
 
         X.append(features.iloc[i - sequence_length + 1:i + 1].values)
-        y.append(1.0 if long_win else 0.0)
+        y.append(_one_hot(label) if use_hold else [1.0 if label == BUY else 0.0])
 
-    return np.array(X, dtype=np.float32), np.array(y, dtype=np.float32).reshape(-1, 1)
+    output_dim = 3 if use_hold else 1
+    return np.array(X, dtype=np.float32), np.array(y, dtype=np.float32).reshape(-1, output_dim)
