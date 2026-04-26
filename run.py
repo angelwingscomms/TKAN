@@ -53,7 +53,21 @@ def main():
 
     features = build_feature_frame(df, cfg)
     target = select_symbol_ohlc(df, cfg['symbol'])
-    merged = pd.concat([features, target.add_prefix('target_')], axis=1).dropna()
+    merged = pd.concat([features, target.add_prefix('target_')], axis=1)
+    valid_rows = merged.dropna()
+    if len(valid_rows) == 0:
+        raise ValueError(
+            "No usable training rows were found. "
+            "Your selected symbols and feature columns do not overlap at any timestamp, "
+            "so every row is missing at least one value. "
+            "Try enabling fewer symbols or using a data file where all selected symbols cover the same time range."
+        )
+    if len(valid_rows) < 2160:
+        print(
+            f"  Warning: only {len(valid_rows)} usable rows were found. "
+            "This is very small, so training may be unstable."
+        )
+    merged = valid_rows
     features = merged[features.columns].copy()
     target = merged[[f'target_{field}' for field in ('open', 'high', 'low', 'close')]].copy()
     target.columns = ['open', 'high', 'low', 'close']
