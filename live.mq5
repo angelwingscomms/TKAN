@@ -107,8 +107,11 @@ void RunModel() {
    matrixf x3d = x;
    x3d.Resize(1, numCandles * CFG_INPUT_DIM);
    if(!OnnxRun(gOnnxHandle, 0, x3d, y)) { Print("ONNX run failed: ", GetLastError()); return; }
-   Print("pred=", y[0]);
-   Trade((double)y[0]);
+   double buyProb = (double)y[0];
+   if(!MathIsValidNumber(buyProb)) { Print("Invalid ONNX output: ", buyProb); return; }
+   if(buyProb < 0.0 || buyProb > 1.0) { Print("ONNX output out of range: ", buyProb); return; }
+   Print("buy_prob=", buyProb, " sell_prob=", 1.0 - buyProb);
+   Trade(buyProb);
 }
 
 double GetSL(bool isBuy) {
@@ -141,9 +144,10 @@ double GetTP(bool isBuy) {
    }
 }
 
-void Trade(double pred) {
+// Model output is buy probability: 1.0 = buy, 0.0 = sell.
+void Trade(double buyProb) {
    double sl_price = 0, tp_price = 0;
-   if(pred > 0.5) {
+   if(buyProb > 0.5) {
       if(PositionSelect(gSymbol) && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
          CloseTrade();
       if(!PositionSelect(gSymbol)) {
@@ -154,9 +158,9 @@ void Trade(double pred) {
          req.volume = LotSize; req.price = SymbolInfoDouble(gSymbol, SYMBOL_ASK);
          req.sl = sl_price; req.tp = tp_price;
          req.type = ORDER_TYPE_BUY; req.comment = "TKAN_BUY";
-         if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("BUY SL=", sl_price, " TP=", tp_price);
+         if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("BUY buy_prob=", buyProb, " SL=", sl_price, " TP=", tp_price);
       }
-   } else if(pred < 0.5) {
+   } else if(buyProb < 0.5) {
       if(PositionSelect(gSymbol) && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
          CloseTrade();
       if(!PositionSelect(gSymbol)) {
@@ -167,8 +171,10 @@ void Trade(double pred) {
          req.volume = LotSize; req.price = SymbolInfoDouble(gSymbol, SYMBOL_BID);
          req.sl = sl_price; req.tp = tp_price;
          req.type = ORDER_TYPE_SELL; req.comment = "TKAN_SELL";
-         if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("SELL SL=", sl_price, " TP=", tp_price);
+         if(OrderSend(req, res) && res.retcode == TRADE_RETCODE_DONE) Print("SELL buy_prob=", buyProb, " SL=", sl_price, " TP=", tp_price);
       }
+   } else {
+      Print("buy_prob exactly 0.5, keeping current position");
    }
 }
 
