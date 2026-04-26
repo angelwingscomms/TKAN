@@ -3,8 +3,8 @@ symbol: "BTCUSD"
 
 # Symbol
 target_type: "atr"
-atr_multiplier: 1.44
-tp_multiplier: 1
+atr_multiplier: 5.4
+tp_multiplier: 1.44
 atr_period: 9
 confidence_threshold: 0.6
 limit_by_spread: true
@@ -63,23 +63,23 @@ features:
       - [15, 50]
   rsi:
     enabled: true
-    periods: [7, 14]
+    periods: [9, 18]
   adx:
     enabled: true
-    periods: [14]
+    periods: [18]
   macd:
     enabled: true
-    fast: 12
-    slow: 26
+    fast: 9
+    slow: 27
     signal: 9
   higher_timeframes:
     enabled: true
-    timeframes: [15, 60]
+    timeframes: [5, 15, 60]
     log_return_periods: [1]
-    rsi_periods: [14]
+    rsi_periods: [9]
     macd:
-      fast: 12
-      slow: 26
+      fast: 9
+      slow: 27
       signal: 9
   time:
     enabled: true
